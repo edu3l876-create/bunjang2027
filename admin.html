@@ -78,7 +78,7 @@ table.t tr:hover td{background:#f6faf8;cursor:pointer}
 .hide{display:none!important}
 @media(max-width:900px){ .side{position:fixed;inset:auto 0 0 0;width:auto;max-height:60%;border-left:none;border-top:2px solid var(--accent);z-index:5;box-shadow:0 -6px 20px rgba(0,0,0,.15)} }
 #printArea{display:none}
-@media print{ body{display:block;background:#fff} header,.bar,.work,.login{display:none!important} #printArea{display:block!important} }
+@media print{ html,body{height:auto!important;overflow:visible!important} body{display:block;background:#fff} header,.bar,.work,.login{display:none!important} #printArea{display:block!important} }
 </style>
 </head>
 <body>
@@ -106,7 +106,7 @@ table.t tr:hover td{background:#f6faf8;cursor:pointer}
   </div>
   <input type="search" id="q" placeholder="이름 찾기">
   <label><input type="checkbox" id="hideTaken"> 배정된 교사 숨기기</label>
-  <div class="legend"><span class="chip c1">우1</span> 우선 희망 1지망 · <span class="chip c2">차1</span> 차선 희망 1지망 · 부장 제외</div>
+  <div class="legend"><span class="chip c1">우1</span> 우선 희망 1지망 · <span class="chip c2">차1</span> 차선 희망 1지망 · 부장 예정자 제외</div>
 </div>
 
 <div class="work hide" id="work">
