@@ -144,8 +144,17 @@ async function loadAll(){
     if(j.asg){ ASG=j.asg; try{ localStorage.setItem(ASG_KEY,JSON.stringify(ASG)); }catch(e){} }
     start(j.rows||[], j.config);
     setSync("배정 시트에서 불러옴");
+    syncPlanned();
     try{ sessionStorage.setItem("bjkey",$("key").value); }catch(e){}
   }catch(e){ m.innerHTML=`<div class="status bad">${esc(e.message)}</div>`; }
+}
+// 설정 탭 C열의 부장 예정자를 배정 탭에도 기록 (업무 칸 "예정"). 명단에서 빠진 사람은 지운다.
+function syncPlanned(){
+  const want={}; (CFG.depts||[]).forEach(d=>{ if(d.headName) want[d.headName.trim()]=d.name; });
+  let changed=false;
+  Object.keys(ASG).forEach(n=>{ const a=ASG[n]; if(a&&a.group==="부장"&&a.task==="예정"&&want[n]!==a.key){ delete ASG[n]; changed=true; } });
+  Object.keys(want).forEach(n=>{ const a=ASG[n]; if(!a||a.group!=="부장"||a.key!==want[n]||a.task!=="예정"){ ASG[n]={group:"부장",key:want[n],task:"예정"}; changed=true; } });
+  if(changed){ saveAsg(); render(); }
 }
 function start(rows,cfg){
   ROWS=rows; if(cfg&&cfg.depts&&cfg.depts.length) CFG=cfg;
