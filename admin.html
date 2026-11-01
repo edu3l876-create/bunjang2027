@@ -160,6 +160,14 @@ $("reloadBtn").onclick=loadAll;
 /* ---- 순위·지망 결합 ---- */
 // 우선/차선(담임·비담임)과 지망(1~3)을 묶어 "우1·차2" 표시, 부장은 별도 "부1"
 const prioOf=d=>d.prio||(d.groupRank||[]).find(g=>g==="담임"||g==="비담임")||"";
+// 부장으로 확정한 교사는 담임·비담임 보드와 통계, 회의 자료에서 뺀다
+const nn=s=>String(s||"").replace(/\s/g,"");
+// 부장 예정: 설정 탭 C열에 이름이 있거나(서버 판정) 관리자가 직접 확정한 교사
+const plannedDept=d=>{ const hit=(CFG.depts||[]).find(x=>x.headName&&nn(x.headName)===nn(d.name)); return hit?hit.name:(d.headPlanned?(d.headDept||d.headPlannedDept||""):""); };
+const isPlanned=d=>!!plannedDept(d);
+const isHead=d=>{ if(isPlanned(d)) return true; const a=ASG[d.name]; return !!(a&&a.group==="부장"); };
+const headLabel=d=>{ const p=plannedDept(d); if(p) return `${p} 부장 예정`; const a=ASG[d.name]; return a&&a.group==="부장"?asgLabel(a):""; };
+const POOL=()=>ROWS.filter(d=>!isHead(d));
 function prefs(d, group){
   const p=prioOf(d);
   const r= group==="부장" ? 3 : !p ? 0 : group===p ? 1 : 2; if(!r) return [];
@@ -187,7 +195,7 @@ function quotaMissing(group){
   return columns(group).filter(k=>{ const d=CFG.depts.find(x=>x.name===k); return !d||d.quota==null; });
 }
 function colStat(group,key){
-  const items=[]; ROWS.forEach(d=>prefs(d,group).forEach(p=>{ if(p&&p.key===key) items.push({d,p}); }));
+  const items=[]; POOL().forEach(d=>prefs(d,group).forEach(p=>{ if(p&&p.key===key) items.push({d,p}); }));
   const q=quota(group,key), top=items.filter(x=>score(x.p)<=2).length;
   const assigned=ROWS.filter(d=>{ const a=ASG[d.name]; return a&&a.group===group&&a.key===key; });
   const first=items.filter(x=>x.p.rank===1&&x.p.pick===1).length;   // 우1: 우선 희망 1지망
@@ -196,17 +204,18 @@ function colStat(group,key){
 // 전체 자리 수와 우선 희망 인원 비교 (부장 제외)
 function seatGap(group){
   const seats=columns(group).reduce((a,k)=>a+quota(group,k),0);
-  const want=ROWS.filter(d=>prioOf(d)===group).length;
+  const want=POOL().filter(d=>prioOf(d)===group).length;
   return {seats,want,diff:want-seats,missing:quotaMissing(group)};
 }
 const nl2=(dept,task)=>String(dept||"").replace(/부$/,"")+(task?"_"+task:"");   // 비담임 표기: 교무기획_인사
-const asgLabel=a=>a? (a.group==="비담임"?nl2(a.key,a.task):a.group==="담임"?`${a.key} 담임`:`${a.key} 부장`) : "";
+const asgLabel=a=>a? (a.group==="비담임"?nl2(a.key,a.task):a.group==="담임"?`${a.key} 담임`:(a.key==="부장"?"부장":`${a.key} 부장`)) : "";
 
 /* ---- 렌더 ---- */
 function render(){
   const done=ROWS.filter(d=>ASG[d.name]).length;
   const gapTxt=g=>{ const x=seatGap(g); if(x.missing.length) return `<span>${g} 우선 희망 <b>${x.want}</b>명 <em class="gap over" title="설정 탭 ${g==="담임"?"G열":"E열"}: ${x.missing.join(", ")}">정원 미입력</em></span>`; return `<span>${g} <b>${x.seats}</b>자리 · 우선 희망 <b>${x.want}</b>명 <em class="gap ${x.diff>0?"over":x.diff<0?"under":""}">${x.diff>0?`${x.diff}명 초과`:x.diff<0?`${-x.diff}자리 남음`:"일치"}</em></span>`; };
-  $("kpi").innerHTML=`<span><b>${ROWS.length}</b>제출</span>${gapTxt("담임")}${gapTxt("비담임")}<span><b>${done}</b>배정</span>`;
+  const heads=ROWS.filter(isHead).length;
+  $("kpi").innerHTML=`<span><b>${ROWS.length}</b>제출</span><span>부장 예정 <b>${heads}</b></span>${gapTxt("담임")}${gapTxt("비담임")}<span><b>${done}</b>배정</span>`;
   document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===TAB));
   if(TAB==="list") renderList(); else if(TAB==="miss") renderMissing(); else renderBoard(TAB);
   renderSide();
@@ -214,7 +223,7 @@ function render(){
 function renderBoard(group){
   const q=$("q").value.trim(), hide=$("hideTaken").checked;
   const cols=columns(group).map(key=>{
-    const items=[]; ROWS.forEach(d=>prefs(d,group).forEach(p=>{ if(p&&p.key===key) items.push({d,p}); }));
+    const items=[]; POOL().forEach(d=>prefs(d,group).forEach(p=>{ if(p&&p.key===key) items.push({d,p}); }));
     items.sort((a,b)=>score(a.p)-score(b.p)||String(a.d.name).localeCompare(String(b.d.name),"ko"));
     const st=colStat(group,key), mine=st.assigned;
     const cards=items.filter(({d})=>{ const a=ASG[d.name]; const isMine=a&&a.group===group&&a.key===key; return !(hide&&a&&!isMine); }).map(({d,p})=>{
@@ -235,12 +244,13 @@ function renderList(){
   $("view").innerHTML=`<div class="bar" style="border-bottom:none;background:transparent"><button class="btn primary" id="printAll">전체 출력</button><button class="btn primary" id="printSel">선택 출력</button><span class="muted" style="font-size:12.5px;color:var(--muted)">1인당 A4 1쪽 · 인쇄 창에서 "머리글과 바닥글" 끄기</span></div>
   <div class="tablewrap"><table class="t"><thead><tr><th><input type="checkbox" id="all"></th><th>성명</th><th>교과</th><th>구분</th><th>경력</th><th>우선 희망</th><th>담임 지망</th><th>비담임 지망</th><th>부장 지망</th><th>배정</th><th></th></tr></thead><tbody>`+
   rows.map(d=>{ const i=ROWS.indexOf(d);
-    return `<tr data-n="${esc(d.name)}"><td><input type="checkbox" class="sel" data-i="${i}"></td><td>${esc(d.name)}</td><td>${esc(d.subject)}</td><td>${d.staff==="본교"?"본교":"전입·신규"}</td><td>${esc(d.careerYears||0)}년</td><td>${esc(summary(d))}</td>
+    return `<tr data-n="${esc(d.name)}"><td><input type="checkbox" class="sel" data-i="${i}"></td><td>${esc(d.name)}</td><td>${esc(d.subject)}</td><td>${d.staff==="본교"?"본교":"전입·신규"}</td><td>${esc(d.careerYears||0)}년</td><td>${esc(isPlanned(d)?"부장 예정":summary(d))}</td>
     <td class="l">${(d.hrPicks||[]).filter(Boolean).map(esc).join(" › ")}</td><td class="l">${(d.nonPicks||[]).filter(p=>p&&p.dept).map(p=>esc(nl2(p.dept,p.task))).join(" › ")}</td><td class="l">${(d.headPicks||[]).filter(Boolean).map(esc).join(" › ")||"-"}</td>
-    <td>${esc(asgLabel(ASG[d.name]))}</td><td><button class="btn" data-p="${i}">출력</button></td></tr>`; }).join("")+`</tbody></table></div>`;
+    <td>${esc(isHead(d)?headLabel(d):asgLabel(ASG[d.name]))}</td><td style="white-space:nowrap">${isPlanned(d)?"":`<button class="btn${isHead(d)?" on":""}" data-h="${i}" title="부장으로 확정하면 담임·비담임 보드와 통계에서 빠집니다">부장</button>`} <button class="btn" data-p="${i}">출력</button></td></tr>`; }).join("")+`</tbody></table></div>`;
   $("all").onchange=e=>document.querySelectorAll(".sel").forEach(c=>c.checked=e.target.checked);
   $("view").querySelectorAll("[data-p]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); doPrint([ROWS[+b.dataset.p]]); });
   $("view").querySelectorAll(".sel").forEach(c=>c.onclick=e=>e.stopPropagation());
+  $("view").querySelectorAll("[data-h]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); toggleHead(ROWS[+b.dataset.h]); });
   $("view").querySelectorAll("tbody tr").forEach(tr=>tr.onclick=()=>{ SEL=tr.dataset.n; renderSide(); });
   $("printAll").onclick=()=>doPrint(ROWS);
   $("printSel").onclick=()=>doPrint([...document.querySelectorAll(".sel:checked")].map(c=>ROWS[+c.dataset.i]));
@@ -269,18 +279,22 @@ function renderSide(){
    <dt>업무 경력</dt><dd>${esc(d.career||"")}</dd>
    <dt>담임 경력</dt><dd>${(+d.hrMid===0&&+d.hrHigh===0)?"없음":`중 ${esc(d.hrMid)}년 · 고 ${esc(d.hrHigh)}년`}</dd>
    <dt>본교 발령</dt><dd>${esc(d.arrivalDate||"")}</dd></dl>
-   <h4>우선 희망과 지망</h4><div class="prefs">${["담임","비담임","부장"].map(line).join("")}</div>
+   ${isPlanned(d)?`<h4>2027학년도 업무</h4><div class="prefs"><span class="chip c1">부장</span><span><b>${esc(plannedDept(d))}</b> 부장 예정</span></div>`:`<h4>우선 희망과 지망</h4><div class="prefs">${["담임","비담임","부장"].map(line).join("")}</div>`}
    ${d.reason?`<h4>희망 사유 및 참고사항</h4><div style="font-size:13px;white-space:pre-wrap">${esc(d.reason)}</div>`:""}
-   <h4>배정 ${a?`<span style="color:var(--done)">— ${esc(asgLabel(a))}</span>`:""}</h4>
+   ${isPlanned(d)?"":`<h4>배정 ${a?`<span style="color:var(--done)">— ${esc(asgLabel(a))}</span>`:""}</h4>
    <div class="asg">${opts.map((o,i)=>`<button class="btn ${a&&a.group===o.group&&a.key===o.key&&(a.task||"")===o.task?"on":""}" data-o="${i}">${chip(o.p)} ${esc(o.group==="비담임"?nl2(o.key,o.task):o.key+(o.group==="담임"?" 담임":o.group==="부장"?" 부장":""))}</button>`).join("")}
+   <button class="btn ${isHead(d)?"on":""}" id="headBtn">부장 확정${(d.headPicks||[]).filter(Boolean).length?" ("+esc(d.headPicks.filter(Boolean)[0])+")":""}</button>
    ${a?`<button class="btn" id="unasg">배정 취소</button>`:""}</div>
+   <p class="muted" style="margin-top:6px">부장으로 확정하면 담임·비담임 보드와 통계, 회의 자료에서 빠집니다.</p>`}
    <p class="muted" style="margin-top:8px">배정은 시트 "배정" 탭에 자동 저장되어 학교 PC 등 다른 컴퓨터에서도 이어서 볼 수 있습니다.</p>
    <button class="btn" id="printOne" style="margin-top:6px">이 교사 조사서 출력</button>`;
   $("closeSide").onclick=()=>{ SEL=null; render(); };
   s.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{ const o=opts[+b.dataset.o]; ASG[d.name]={group:o.group,key:o.key,task:o.task}; saveAsg(); render(); });
-  if(a) $("unasg").onclick=()=>{ delete ASG[d.name]; saveAsg(); render(); };
+  if($("headBtn")) $("headBtn").onclick=()=>toggleHead(d);
+  if(a&&$("unasg")) $("unasg").onclick=()=>{ delete ASG[d.name]; saveAsg(); render(); };
   $("printOne").onclick=()=>doPrint([d]);
 }
+function toggleHead(d){ if(isPlanned(d)) return; if(isHead(d)) delete ASG[d.name]; else ASG[d.name]={group:"부장",key:(d.headPicks||[]).filter(Boolean)[0]||"부장",task:""}; saveAsg(); render(); }
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; render(); });
 $("q").addEventListener("input",render); $("hideTaken").addEventListener("change",render);
 
@@ -293,13 +307,13 @@ function meetingHTML(){
     const tA=g==="부장"?tier(it,(s,p)=>p.pick===1):tier(it,s=>s<=2), tB=g==="부장"?tier(it,(s,p)=>p.pick===2):tier(it,s=>s>=3&&s<=4), tC=g==="부장"?tier(it,(s,p)=>p.pick===3):tier(it,s=>s>=5);
     return `<tr><td>${esc(key)}${g==="담임"?" 담임":g==="부장"?" 부장":""}</td><td class="c">${st.q||""}</td><td>${tA}</td><td>${tB}</td><td>${tC}</td><td>${st.assigned.map(d=>esc(d.name)+(ASG[d.name].task?`(${esc(nl2(ASG[d.name].key,ASG[d.name].task))})`:"")).join(", ")}</td><td class="c">${st.first} / ${st.q||"-"}</td></tr>`;
   }).join("")).join("");
-  const T=ROWS.map(d=>{ n++; const a=ASG[d.name];
+  const T=POOL().map(d=>{ n++; const a=ASG[d.name];
     return `<tr><td class="c">${n}</td><td>${esc(d.name)}</td><td class="c">${esc(d.subject||"")}</td><td class="c">${d.staff==="본교"?"본교":"전입·신규"}</td><td class="c">${esc(d.careerYears||0)}</td><td class="c">${esc(prioOf(d))}</td>
     <td>${(d.hrPicks||[]).filter(Boolean).map(esc).join(" › ")}</td><td>${(d.nonPicks||[]).filter(p=>p&&p.dept).map(p=>esc(nl2(p.dept,p.task))).join(" › ")}</td><td>${esc(d.career||"")}</td><td>${esc(asgLabel(a))}</td></tr>`; }).join("");
   const today=new Date().toLocaleDateString("ko-KR");
-  return `<div class="mt"><h2>${YEAR}학년도 담임 및 업무분장 희망 현황 — 자리별</h2><p class="mtm">${today} · 제출 ${ROWS.length}명 · ${["담임","비담임"].map(g=>{ const x=seatGap(g); return x.missing.length?`${g} 정원 미입력, 우선 희망 ${x.want}명`:`${g} ${x.seats}자리, 우선 희망 ${x.want}명(${x.diff>0?x.diff+"명 초과":x.diff<0?(-x.diff)+"자리 남음":"일치"})`; }).join(" · ")} · 우1·우2 = 우선 희망 1·2지망, 우3·차1 = 중간, 차2·차3 = 낮음 · 부장 제외</p>
+  return `<div class="mt"><h2>${YEAR}학년도 담임 및 업무분장 희망 현황 — 자리별</h2><p class="mtm">${today} · 제출 ${ROWS.length}명(부장 예정 ${ROWS.filter(isHead).length}명 제외) · ${["담임","비담임"].map(g=>{ const x=seatGap(g); return x.missing.length?`${g} 정원 미입력, 우선 희망 ${x.want}명`:`${g} ${x.seats}자리, 우선 희망 ${x.want}명(${x.diff>0?x.diff+"명 초과":x.diff<0?(-x.diff)+"자리 남음":"일치"})`; }).join(" · ")} · 우1·우2 = 우선 희망 1·2지망, 우3·차1 = 중간, 차2·차3 = 낮음</p>
   <table><thead><tr><th style="width:13%">자리</th><th style="width:5%">정원</th><th>우1·우2</th><th>우3·차1</th><th>차2·차3</th><th style="width:15%">1차안</th><th style="width:7%">우1 / 정원</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="mt"><h2>${YEAR}학년도 담임 및 업무분장 희망 현황 — 교사별</h2><p class="mtm">${today} · 개인정보(주소·연락처·생년월일)와 희망 사유는 포함하지 않았습니다. 회의 후 회수합니다.</p>
+  <div class="mt"><h2>${YEAR}학년도 담임 및 업무분장 희망 현황 — 교사별</h2><p class="mtm">${today} · 부장 예정 ${ROWS.filter(isHead).length}명 제외 · 개인정보(주소·연락처·생년월일)와 희망 사유는 포함하지 않았습니다. 회의 후 회수합니다.</p>
   <table><thead><tr><th>번호</th><th>성명</th><th>교과</th><th>구분</th><th>경력</th><th>우선</th><th>담임 지망</th><th>비담임 지망</th><th>업무 경력</th><th>1차안</th></tr></thead><tbody>${T}</tbody></table></div>`;
 }
 const MEET_CSS=`@page{size:A4 landscape;margin:10mm}
