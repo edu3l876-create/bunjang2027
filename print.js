@@ -42,7 +42,7 @@ const PRINT_CSS = `
 .pf td.c{text-align:center}
 .pf .sm2{font-size:10.5px;font-weight:500}
 .pf td.rk{font-size:14px;font-weight:700}
-.pf td.tall{height:170px;vertical-align:top}
+.pf td.tall{height:150px;vertical-align:top}
 .pf .small{font-size:11px;color:#333}
 .pf .sig{margin-top:10px;font-size:13.5px;line-height:1.9}
 .pf .sig .r{text-align:right}
@@ -56,6 +56,8 @@ const PRINT_CSS = `
 .pf .page:last-child{break-after:auto;page-break-after:auto}
 @media print{
   @page{size:A4 portrait;margin:14mm 13mm 12mm 13mm}
+  html,body{height:auto!important;min-height:0!important;overflow:visible!important}
+  .pf .page{break-inside:avoid}
   .pf{border:none;max-width:none;margin:0;padding:0}
   .pf + .pf{break-before:page;page-break-before:always}
 }`;
