@@ -54,6 +54,9 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 .hide{display:none!important}
 #preview{overflow-x:auto}
 #preview .pf{transform-origin:top left}
+#myPrintArea{display:none}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+@media print{ body.pmode > *:not(#myPrintArea){display:none!important} body.pmode #myPrintArea{display:block!important} body.pmode{background:#fff;margin:0} }
 </style>
 </head>
 <body>
@@ -128,7 +131,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 
 <section class="card" id="sec6">
   <h2>6. 2027학년도 희망 업무</h2>
-  <p class="note" style="margin:0 0 10px">담임과 비담임 중 우선 희망하는 쪽을 선택하고, 각각 1~3지망을 기재해 주세요(필수 6개). 부장은 희망 여부를 선택하고, 희망하는 경우 1~3지망을 추가로 기재합니다(최대 9개).</p>
+  <p class="note" id="sec6Note" style="margin:0 0 10px">담임과 비담임 중 우선 희망하는 쪽을 선택하고, 각각 1~3지망을 기재해 주세요(필수 6개). <span id="sec6HeadTxt">부장은 희망 여부를 선택하고, 희망하는 경우 공석 부서 중에서 선택합니다.</span></p>
   <div class="q">① 우선 희망 <i class="req">*</i></div>
   <div class="ox" data-ox="prio"><button data-v="담임">담임 우선</button><button data-v="비담임">비담임 우선</button></div>
 
@@ -139,8 +142,9 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   <div id="nonPicks" class="picks"></div>
 
   <div id="headBlock">
-  <div class="q">④ 부장 희망 여부 <i class="req">*</i> <span class="note" id="headNote"></span></div>
-  <div class="ox" data-ox="wantHead"><button data-v="희망">희망</button><button data-v="비희망">비희망</button></div>
+  <div class="q">④ 부장 희망 여부 <i class="req" id="headReq">*</i> <span class="note" id="headNote"></span></div>
+  <div id="headClosedMsg" class="status ok hide" style="margin-top:4px">2027학년도 부장단은 구성이 완료되었습니다.</div>
+  <div class="ox" data-ox="wantHead" id="headOx"><button data-v="희망">희망</button><button data-v="비희망">비희망</button></div>
   <div id="headPicks" class="picks hide"></div>
   </div>
   <p class="note">※ 각 지망은 서로 다른 부서(학년)로 선택하고, 업무는 배부된 업무분장표를 참고하세요.</p>
@@ -174,11 +178,14 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   <div id="submitMsg"></div>
   <p class="note">같은 성명·생년월일로 다시 제출하면 이전 제출 내용이 수정됩니다.</p>
   <button class="btn" id="previewBtn" style="margin-top:8px;width:100%">출력 양식 미리보기</button>
+  <button class="btn" id="myPrintBtn" style="margin-top:4px;width:100%" disabled>내 조사서 출력 (A4 1쪽)</button>
+  <p class="note" style="margin-top:2px">※ 필수 항목을 모두 입력하면 [내 조사서 출력]이 켜집니다. 제출한 뒤 출력해 서명하세요.</p>
   <button class="btn x" id="resetBtn" style="margin-top:4px;width:100%">입력 초기화</button>
 </section>
 
 <section id="preview" class="hide"></section>
 </main>
+<div id="myPrintArea"></div>
 
 <script>
 /* ===== 설정 ===== */
@@ -202,7 +209,7 @@ function renderPicks(){
   S.headPicks=S.headPicks.map(v=>openHeads().includes(v)?v:"");
   const hp=$("headPicks"); hp.innerHTML="";
   S.headPicks.slice(0,headN()).forEach((v,i)=>{ const r=document.createElement("div"); r.className="pickrow one";
-    r.innerHTML=`<span>${i+1}지망</span><select>${opt(openHeads(),v,"부서 선택")}</select>`;
+    r.innerHTML=`<span>${headN()===1?"부서":i+1+"지망"}</span><select>${opt(openHeads(),v,"부서 선택")}</select>`;
     r.children[1].onchange=e=>{S.headPicks[i]=e.target.value; update();}; hp.appendChild(r); });
   const gp=$("hrPicks"); gp.innerHTML="";
   S.hrPicks.forEach((v,i)=>{ const r=document.createElement("div"); r.className="pickrow one";
@@ -264,7 +271,7 @@ function validate(d){
   else if(new Set(d.nonPicks.map(p=>p.dept)).size<3) E.push("비담임 희망 1~3지망은 서로 다른 부서로 선택하세요.");
   if(headOn()){
     if(!S.wantHead) E.push("부장 희망 여부를 선택하세요.");
-    else if(S.wantHead==="희망"){ const hp=d.headPicks.filter(Boolean); if(!hp.length) E.push("부장 희망 부서를 1지망 이상 선택하세요."); else if(new Set(hp).size<hp.length) E.push("부장 희망 부서는 서로 다른 부서로 선택하세요."); }
+    else if(S.wantHead==="희망"){ const hp=d.headPicks.filter(Boolean); if(!hp.length) E.push("부장 희망 부서를 선택하세요."); else if(new Set(hp).size<hp.length) E.push("부장 희망 부서는 서로 다른 부서로 선택하세요."); }
   }
   if(!d.consent) E.push("개인정보 수집·이용 동의 여부를 선택하세요.");
   return E;
@@ -272,9 +279,10 @@ function validate(d){
 
 function update(){
   document.querySelectorAll("[data-ox]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.classList.toggle("on", S[g.dataset.ox]===b.dataset.v)));
-  $("headBlock").classList.toggle("hide", !headOn());
-  $("headNote").textContent = headN()<3 ? `(모집 중: ${openHeads().join(", ")})` : "";
-  $("headPicks").classList.toggle("hide", S.wantHead!=="희망");
+  const closed=headN()===0; $("headBlock").classList.toggle("hide", !S.staff);
+  $("headClosedMsg").classList.toggle("hide", !closed); $("headOx").classList.toggle("hide", closed); $("headReq").classList.toggle("hide", closed); $("sec6HeadTxt").classList.toggle("hide", closed);
+  $("headNote").textContent = openHeads().length>0 && openHeads().length<=3 ? `(공석: ${openHeads().join(", ")})` : "";
+  $("headPicks").classList.toggle("hide", closed || S.wantHead!=="희망");
   $("staffNeed").classList.toggle("hide", !!S.staff); $("prevWrap").classList.toggle("hide", !S.staff); $("careerWrap").classList.toggle("hide",$("noCareer").checked); $("hrWrap").classList.toggle("hide",$("noHR").checked);
   const isN=S.staff==="전입·신규", none=isN&&$("noSchool").checked;
   $("noSchoolWrap").classList.toggle("hide", !isN); $("pSchoolWrap").classList.toggle("hide", none); $("pTask").closest("label").classList.toggle("hide", none);
@@ -282,6 +290,7 @@ function update(){
   $("headPlanSec").classList.toggle("hide",!S.planned); $("sec6").classList.toggle("hide",S.planned);
   const d=collectAll(); const E=validate(d);
   $("validation").innerHTML = E.length ? `<div class="status bad">${E.map(e=>"• "+esc(e)).join("<br>")}</div>` : `<div class="status ok">모두 입력되었습니다. 제출할 수 있습니다.</div>`;
+  const pb=$("myPrintBtn"); pb.disabled=E.length>0; pb.title=E.length?"필수 항목을 모두 입력하면 출력할 수 있습니다.":"";
   save(); return {d,E};
 }
 
@@ -301,6 +310,10 @@ $("name").addEventListener("change",checkHead);
 $("resetBtn").onclick=()=>{ if(!confirm("입력한 내용을 모두 지울까요? (이미 제출한 내용은 그대로 남습니다)")) return; try{localStorage.removeItem(KEY);}catch(e){} location.reload(); };
 $("previewBtn").onclick=()=>{ const {d}=update(); injectPrintCss(); const p=$("preview"); p.innerHTML=renderForm({...d,submittedAt:new Date().toISOString()}); p.classList.remove("hide"); p.scrollIntoView({behavior:"smooth"}); };
 
+$("myPrintBtn").onclick=()=>{ const {d,E}=update(); if(E.length) return;
+  injectPrintCss(); $("myPrintArea").innerHTML=renderForm({...d,submittedAt:new Date().toISOString()});
+  document.body.classList.add("pmode"); window.print(); };
+window.addEventListener("afterprint",()=>{ document.body.classList.remove("pmode"); $("myPrintArea").innerHTML=""; });
 $("submitBtn").onclick=async()=>{
   const {d,E}=update(); const m=$("submitMsg");
   if(E.length){ m.innerHTML=`<div class="status bad">위 항목을 먼저 확인하세요.</div>`; $("validation").scrollIntoView({behavior:"smooth",block:"center"}); return; }
@@ -310,7 +323,7 @@ $("submitBtn").onclick=async()=>{
   try{
     const r=await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"submit",data:d})});
     const j=await r.json(); if(!j.ok) throw new Error(j.error||"오류");
-    m.innerHTML=`<div class="status ok">제출되었습니다${j.mode==="updated"?" (이전 제출 내용 수정)":""}. 출력물은 담당자가 일괄 출력하여 서명을 받습니다.</div>`;
+    m.innerHTML=`<div class="status ok">제출되었습니다${j.mode==="updated"?" (이전 제출 내용 수정)":""}. [내 조사서 출력]으로 직접 출력해 서명할 수 있습니다.</div>`;
   }catch(e){ m.innerHTML=`<div class="status bad">제출 실패: ${esc(e.message)} — 잠시 후 다시 시도해 주세요.</div>`; }
   $("submitBtn").disabled=false;
 };
