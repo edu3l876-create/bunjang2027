@@ -133,6 +133,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
     <label class="f">교육 경력 (합계, 년) <i class="req">*</i><input id="careerYears" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 12"></label>
     <label class="f hide" id="arrivalWrap">본교 발령일 <i class="req">*</i><input id="arrivalDate" type="date"></label>
   </div>
+  <div id="expBlock">
   <div class="q">업무 경력 <i class="req">*</i></div>
   <label class="chk" style="margin-bottom:6px"><input type="checkbox" id="noCareer"> 업무 경력 없음</label>
   <div id="careerWrap"><textarea id="career" style="min-height:72px" placeholder="예) 학생자치부장 1년, 성적 2년, 평가 1년, 창체 2년"></textarea>
@@ -143,6 +144,8 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
     <label class="f">중학교 (년)<input id="hrMid" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 5"></label>
     <label class="f">고등학교 (년)<input id="hrHigh" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 0"></label>
   </div>
+  </div>
+  <div id="noExpMsg" class="status ok hide" style="margin:6px 0 10px"></div>
   <div class="nav"><button class="btn" id="prev3" type="button">← 이전</button><button class="btn next" id="next3" type="button">다음 →</button></div>
   <div class="stepmsg" id="msg-3"></div>
 </section>
@@ -278,6 +281,8 @@ const SUBJECT_GRADES = {
 const hrGrades = () => { const g=(CFG.subjectGrades||SUBJECT_GRADES)[$("subject").value]; return g ? CFG.grades.filter(x=>g.includes(x)) : CFG.grades.slice(); };
 const NO_HR_SUBJECTS = ["특수","보건","상담","영양","사서","진로"];   // 담임 희망을 받지 않는 교과
 const noHr = () => NO_HR_SUBJECTS.includes($("subject").value);
+const NO_EXP_SUBJECTS = ["보건","상담","영양","사서","진로"];   // 비교과: 업무·담임 경력 입력 생략
+const noExp = () => NO_EXP_SUBJECTS.includes($("subject").value);
 const hrN = () => noHr() ? 0 : Math.min(3, hrGrades().length);
 const headDepts = () => CFG.depts.map(d=>d.name);
 const nonDepts = () => CFG.depts.filter(d=>d.tasks && d.tasks.length && d.quota!==0);   // 비담임 정원 0명 부서는 지망 목록에서 제외
@@ -341,8 +346,8 @@ function stepErrors(n){
   if(n===3){ const E=[];
     if(!d.careerYears) E.push("교육 경력을 입력하세요.");
     if(!d.arrivalDate) E.push("본교 발령일을 입력하세요.");
-    if(!d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
-    if(d.hrMid===""||d.hrHigh==="") E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
+    if(!noExp() && !d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
+    if(!noExp() && (d.hrMid===""||d.hrHigh==="")) E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
     return E; }
   if(n===4){ const E=[];
     if(ROUTE==="head" && !S.staff) E.push("2026학년도 근무 구분(본교 재직 / 전입·신규)을 선택하세요.");
@@ -398,7 +403,7 @@ function collect(){
   const t={is:isNew, school, post:"", grade:"", task};   // 수집 서버 호환용
   return { name:d.name, birth:d.birth, license:d.license, subject:d.subject, address:d.address, phone:d.phone,
     careerYears:d.careerYears, arrivalDate:d.arrivalDate, cur:task, prev, staff:S.staff, transfer:t,
-    career:$("noCareer").checked?"없음":d.career, heads:[], hrMid:$("noHR").checked?"0":d.hrMid, hrHigh:$("noHR").checked?"0":d.hrHigh,
+    career:noExp()?"":$("noCareer").checked?"없음":d.career, heads:[], hrMid:noExp()?"":$("noHR").checked?"0":d.hrMid, hrHigh:noExp()?"":$("noHR").checked?"0":d.hrHigh,
     prio:S.prio, groupRank:S.prio?[S.prio, S.prio==="담임"?"비담임":"담임"]:[],
     hrPicks:S.hrPicks.slice(), nonPicks:noHr()?[]:S.nonPicks.map(p=>({...p})),
     wantHead:headOn()?S.wantHead:"", headPicks:headOn()&&S.wantHead==="희망"?S.headPicks.slice(0,headN()):[], headClosed:!!S.staff&&headN()===0,
@@ -418,8 +423,8 @@ function validate(d){
     if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
     else if(d.prev.school!=="없음" && !d.prev.task) E.push("2026학년도 담당업무를 입력하세요.");
   }
-  if(!d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
-  if(d.hrMid===""||d.hrHigh==="") E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
+  if(!noExp() && !d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
+  if(!noExp() && (d.hrMid===""||d.hrHigh==="")) E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
   if(S.planned){ if(!d.consent) E.push("개인정보 수집·이용 동의 여부를 선택하세요."); return E; }
   if(S.staff){
     if(!S.prio && !noHr()) E.push("담임과 비담임 중 우선 희망을 선택하세요.");
@@ -478,6 +483,9 @@ function update(){
       `입력한 성명(${nm})이 부장 예정자 명단에 없습니다.`;
   }
   $("hrBlock").classList.toggle("hide", noHr());
+  $("expBlock").classList.toggle("hide", noExp());
+  $("noExpMsg").classList.toggle("hide", !noExp());
+  $("noExpMsg").textContent = noExp() ? `${$("subject").value} 교사는 업무 경력과 담임 경력을 입력하지 않습니다.` : "";
   $("nonBlock").classList.toggle("hide", noHr());
   $("noHrMsg").classList.toggle("hide", !noHr());
   $("noHrMsg").textContent = noHr() ? `${$("subject").value} 교사는 담당 업무가 정해져 있어 담임·비담임·부장 희망을 받지 않습니다. 6단계로 넘어가세요.` : "";
