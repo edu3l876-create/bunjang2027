@@ -97,7 +97,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   <h2>1단계. 교사 구분 <i class="req">*</i></h2>
   <div class="routes" id="catBtns">
     <button type="button" data-cat="subject"><b>교과 교사</b></button>
-    <button type="button" data-cat="fixed"><b>비교과·특수 교사</b><span>보건·상담·영양·사서·진로·특수</span></button>
+    <button type="button" data-cat="fixed"><b>비교과·특수·진로 교사</b><span>담당 업무가 정해진 교사입니다.</span></button>
     <button type="button" data-cat="head"><b>부장 예정자</b><span>2027학년도 부장 예정 교사입니다.</span></button>
   </div>
   <div id="staffQ" class="hide">
@@ -280,7 +280,7 @@ const DEFAULT_SUBJECTS = [
   {name:"상담",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["전문상담","상담"]},
   {name:"영양",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["영양"]},
   {name:"사서",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["사서"]},
-  {name:"진로",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["진로"]}
+  {name:"진로",group:"진로",grades:[],fixed:true,exp:false,task:false,excludeTasks:["진로"]}
  ]);
 const SUBJECTS = () => (CFG.subjects && CFG.subjects.length) ? CFG.subjects : DEFAULT_SUBJECTS;
 const subj = () => SUBJECTS().find(x=>x.name===$("subject").value);
@@ -483,7 +483,7 @@ function renderSummary(){
   const el=$("summary"); if(!el || STEP!==7) return;
   const d=collectAll();
   const row=(k,v)=>`<tr><td>${k}</td><td>${v||"-"}</td></tr>`;
-  const routeLabel = ROUTE==="head"?"부장 예정자":`${S.cat==="fixed"?"비교과·특수 교사":"교과 교사"} · ${ROUTE==="school"?"옥빛중 재직":ROUTE==="transfer"?"전입·신규":"-"}`;
+  const routeLabel = ROUTE==="head"?"부장 예정자":`${S.cat==="fixed"?"비교과·특수·진로 교사":"교과 교사"} · ${ROUTE==="school"?"옥빛중 재직":ROUTE==="transfer"?"전입·신규":"-"}`;
   let h=`<table class="sum">${row("교사 구분",esc(routeLabel))}${row("성명",esc(d.name))}${row("생년월일",esc(d.birth))}${row("소지자격",esc(d.license))}${row("발령교과",esc(d.subject))}${row("주소",esc(d.address))}${row("휴대폰",esc(d.phone))}${row("교육 경력",d.careerYears?esc(d.careerYears)+"년":"")}${row("본교 발령일",esc(d.arrivalDate))}${row("2026 근무교",esc(d.prev.school))}${row("2026 담당업무",esc(d.prev.task))}${row("업무 경력",esc(d.career))}${row("담임 경력",`중 ${esc(d.hrMid)}년 · 고 ${esc(d.hrHigh)}년`)}`;
   if(d.headPlanned) h+=row("2027 업무",esc(d.headDept)+" 부장 예정");
   else h+=row("우선 희망",esc(d.prio))+row("담임 지망",(d.hrPicks||[]).map(esc).join(" › "))+row("비담임 지망",(d.nonPicks||[]).map(p=>esc(p.dept+(p.task?" – "+p.task:""))).join(" › "))+row("부장 희망",d.wantHead?esc(d.wantHead)+((d.headPicks||[]).filter(Boolean).length?" ("+(d.headPicks||[]).filter(Boolean).map(esc).join(", ")+")":""):"-");
