@@ -73,7 +73,8 @@ function injectPrintCss() {
 function renderForm(d) {
   const heads = (d.heads || []).filter(h => h && h.dept);
   const FIX = d.fixedRole ?? ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject);   // 업무 고정: 희망 조사 해당 없음
-  const NOEXP = d.noExp ?? ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject);    // 경력 입력 생략
+  const HP = !!d.headPlanned;   // 부장 예정자: 경력·근무교 입력 생략
+  const NOEXP = HP || (d.noExp ?? ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject));    // 경력 입력 생략
   const careerTxt = NOEXP ? "해당 없음" : d.career ? nl(d.career) : heads.map(h => `${esc(h.dept)}부장 ${esc(h.years)}년`).join(", ");
   const pick = (arr, i) => esc((arr || [])[i] || "");
   const nonPick = i => { const p = (d.nonPicks || [])[i] || {}; return p.dept ? esc(p.dept + (p.task ? " – " + p.task : "")) : ""; };
@@ -88,14 +89,14 @@ function renderForm(d) {
 <div class="pf">
  <div class="page">
   <h1>${YEAR}학년도 담임 및 업무분장 희망 조사서</h1>
-  <p class="subt">교사 구분 : &nbsp; <span class="box">${d.staff === "본교" ? "✓" : ""}</span> 본교 재직교사 &nbsp;&nbsp;&nbsp; <span class="box">${d.staff && d.staff !== "본교" ? "✓" : ""}</span> 전입·신규교사</p>
+  <p class="subt">교사 구분 : &nbsp; ${HP ? "부장 예정자" : `<span class="box">${d.staff === "본교" ? "✓" : ""}</span> 본교 재직교사 &nbsp;&nbsp;&nbsp; <span class="box">${d.staff && d.staff !== "본교" ? "✓" : ""}</span> 전입·신규교사`}</p>
   <table>
    <colgroup><col style="width:13%"><col style="width:20%"><col style="width:12%"><col style="width:15%"><col style="width:12%"><col style="width:28%"></colgroup>
    <tr><td class="h">성명</td><td class="c">${esc(d.name)}</td><td class="h">생년월일</td><td class="c">${esc(d.birth)}</td><td class="h">소지자격</td><td class="c">${esc(d.license)}</td></tr>
    <tr><td class="h">발령교과</td><td class="c">${esc(d.subject)}</td><td class="h">휴대폰</td><td class="c" colspan="3">${esc(d.phone)}</td></tr>
    <tr><td class="h">주소</td><td colspan="5">${esc(d.address)}</td></tr>
-   <tr><td class="h">교육 경력</td><td class="c">${esc(d.careerYears)} 년</td><td class="h">본교 발령일</td><td class="c" colspan="3">${esc(d.arrivalDate)}</td></tr>
-   <tr><td class="h">근무교<br><span class="sm2">(${YEAR - 1}학년도)</span></td><td class="c">${esc(pv.school)}</td><td class="h">담당업무<br><span class="sm2">(${YEAR - 1}학년도)</span></td><td colspan="3" class="c">${esc(pv.task || "-")}</td></tr>
+   <tr><td class="h">교육 경력</td><td class="c">${HP ? "-" : esc(d.careerYears) + " 년"}</td><td class="h">본교 발령일</td><td class="c" colspan="3">${HP ? "-" : esc(d.arrivalDate)}</td></tr>
+   <tr><td class="h">근무교<br><span class="sm2">(${YEAR - 1}학년도)</span></td><td class="c">${HP ? "-" : esc(pv.school)}</td><td class="h">담당업무<br><span class="sm2">(${YEAR - 1}학년도)</span></td><td colspan="3" class="c">${esc(pv.task || "-")}</td></tr>
    <tr><td class="h" rowspan="2">주요 경력</td><td class="h">업무 경력</td><td colspan="4">${careerTxt}</td></tr>
    <tr><td class="h">담임</td><td colspan="4">${NOEXP ? "해당 없음" : (+d.hrMid === 0 && +d.hrHigh === 0 && d.hrMid !== "" && d.hrMid != null) ? "없음" : `중학교 ( ${esc(d.hrMid ?? "")} )년 &nbsp;&nbsp;&nbsp; 고등학교 ( ${esc(d.hrHigh ?? "")} )년`}</td></tr>
    ${d.headPlanned ? `<tr><td class="h">${YEAR}학년도<br>업무</td><td colspan="5" class="rk" style="padding:12px 8px">부장 예정 : ${esc(d.headDept || "")}</td></tr>` : FIX ? `<tr><td class="h">${YEAR}학년도<br>업무</td><td colspan="5" class="rk" style="padding:12px 8px">${esc(d.subject)} 교사 (업무 고정, 담임·비담임·부장 희망 해당 없음)</td></tr>` : `
