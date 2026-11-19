@@ -193,8 +193,10 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
     </div>
     <div id="noHrMsg" class="status ok hide" style="margin:6px 0 10px"></div>
 
+    <div id="nonBlock">
     <div class="q">③ 비담임 — 희망 부서 및 업무 <i class="req">*</i></div>
     <div id="nonPicks" class="picks"></div>
+    </div>
 
     <div id="headBlock">
     <div class="q">④ 부장 희망 여부 <i class="req" id="headReq">*</i> <span class="note" id="headNote"></span></div>
@@ -295,8 +297,7 @@ function renderPicks(){
   const gp=$("hrPicks"); gp.innerHTML="";
   { const g=hrGrades(), n=hrN(); S.hrPicks=S.hrPicks.map(v=>g.includes(v)?v:"").slice(0,n); while(S.hrPicks.length<n) S.hrPicks.push("");
     const sj=$("subject").value;
-    if(noHr()) S.prio="비담임"; else if(S.prio==="비담임" && S._autoPrio) S.prio="";
-    S._autoPrio=noHr();
+    if(noHr()) S.prio="";
     $("hrNote").textContent = !sj ? "※ 2단계에서 발령교과를 고르면, 그 교과가 개설된 학년만 선택할 수 있습니다."
       : n<3 ? `※ ${sj} 교과는 2027학년도에 ${g.map(x=>x.replace("학년","")).join("·")}학년에만 개설되어 담임 희망은 ${n===1?"1지망만":"1~"+n+"지망까지"} 고릅니다.` : ""; }
   S.hrPicks.forEach((v,i)=>{ const r=document.createElement("div"); r.className="pickrow one";
@@ -399,7 +400,7 @@ function collect(){
     careerYears:d.careerYears, arrivalDate:d.arrivalDate, cur:task, prev, staff:S.staff, transfer:t,
     career:$("noCareer").checked?"없음":d.career, heads:[], hrMid:$("noHR").checked?"0":d.hrMid, hrHigh:$("noHR").checked?"0":d.hrHigh,
     prio:S.prio, groupRank:S.prio?[S.prio, S.prio==="담임"?"비담임":"담임"]:[],
-    hrPicks:S.hrPicks.slice(), nonPicks:S.nonPicks.map(p=>({...p})),
+    hrPicks:S.hrPicks.slice(), nonPicks:noHr()?[]:S.nonPicks.map(p=>({...p})),
     wantHead:headOn()?S.wantHead:"", headPicks:headOn()&&S.wantHead==="희망"?S.headPicks.slice(0,headN()):[], headClosed:!!S.staff&&!headOn(),
     reason:d.reason, consent:S.consent };
 }
@@ -421,11 +422,12 @@ function validate(d){
   if(d.hrMid===""||d.hrHigh==="") E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
   if(S.planned){ if(!d.consent) E.push("개인정보 수집·이용 동의 여부를 선택하세요."); return E; }
   if(S.staff){
-    if(!S.prio) E.push("담임과 비담임 중 우선 희망을 선택하세요.");
+    if(!S.prio && !noHr()) E.push("담임과 비담임 중 우선 희망을 선택하세요.");
   }
   const chk3=(arr,label,unit)=>{ const n=arr.length, rng=n>1?`1~${n}지망`:"1지망"; if(arr.some(v=>!v)) E.push(`${label} ${rng}을 모두 선택하세요.`); else if(new Set(arr).size<n) E.push(`${label} ${rng}은 서로 다른 ${unit}로 선택하세요.`); };
   if(!noHr()) chk3(d.hrPicks,"담임 희망 학년","학년");
-  if(d.nonPicks.some(p=>!p.dept||!p.task)) E.push("비담임 희망 부서 및 업무 1~3지망을 모두 선택하세요.");
+  if(noHr()){}
+  else if(d.nonPicks.some(p=>!p.dept||!p.task)) E.push("비담임 희망 부서 및 업무 1~3지망을 모두 선택하세요.");
   else if(new Set(d.nonPicks.map(p=>p.dept)).size<3) E.push("비담임 희망 1~3지망은 서로 다른 부서로 선택하세요.");
   if(headOn()){
     if(!S.wantHead) E.push("부장 희망 여부를 선택하세요.");
@@ -476,8 +478,9 @@ function update(){
       `입력한 성명(${nm})이 부장 예정자 명단에 없습니다.`;
   }
   $("hrBlock").classList.toggle("hide", noHr());
+  $("nonBlock").classList.toggle("hide", noHr());
   $("noHrMsg").classList.toggle("hide", !noHr());
-  $("noHrMsg").textContent = noHr() ? `${$("subject").value} 교사는 담임 희망을 받지 않습니다. 비담임 희망 부서와 업무만 기재해 주세요.` : "";
+  $("noHrMsg").textContent = noHr() ? `${$("subject").value} 교사는 담당 업무가 정해져 있어 담임·비담임 희망을 받지 않습니다.` : "";
   const d=collectAll(); const E=validate(d);
   $("validation").innerHTML = E.length ? `<div class="status bad">${E.map(e=>"• "+esc(e)).join("<br>")}</div>` : `<div class="status ok">모두 입력되었습니다. 제출할 수 있습니다.</div>`;
   const pb=$("myPrintBtn"); pb.disabled=E.length>0; pb.title=E.length?"필수 항목을 모두 입력하면 출력할 수 있습니다.":"";
