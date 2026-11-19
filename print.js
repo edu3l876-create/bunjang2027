@@ -72,7 +72,9 @@ function injectPrintCss() {
 // d: 제출 데이터 1건 → 희망 조사서 + 동의서 (A4 1쪽)
 function renderForm(d) {
   const heads = (d.heads || []).filter(h => h && h.dept);
-  const careerTxt = d.career ? nl(d.career) : heads.map(h => `${esc(h.dept)}부장 ${esc(h.years)}년`).join(", ");
+  const FIX = ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject);   // 업무 고정: 희망 조사 해당 없음
+  const NOEXP = ["보건", "상담", "영양", "사서", "진로"].includes(d.subject);         // 비교과: 경력 입력 생략
+  const careerTxt = NOEXP ? "해당 없음" : d.career ? nl(d.career) : heads.map(h => `${esc(h.dept)}부장 ${esc(h.years)}년`).join(", ");
   const pick = (arr, i) => esc((arr || [])[i] || "");
   const nonPick = i => { const p = (d.nonPicks || [])[i] || {}; return p.dept ? esc(p.dept + (p.task ? " – " + p.task : "")) : ""; };
   const t = d.transfer || {};
@@ -95,8 +97,8 @@ function renderForm(d) {
    <tr><td class="h">교육 경력</td><td class="c">${esc(d.careerYears)} 년</td><td class="h">본교 발령일</td><td class="c" colspan="3">${esc(d.arrivalDate)}</td></tr>
    <tr><td class="h">근무교<br><span class="sm2">(${YEAR - 1}학년도)</span></td><td class="c">${esc(pv.school)}</td><td class="h">담당업무<br><span class="sm2">(${YEAR - 1}학년도)</span></td><td colspan="3" class="c">${esc(pv.task || "-")}</td></tr>
    <tr><td class="h" rowspan="2">주요 경력</td><td class="h">업무 경력</td><td colspan="4">${careerTxt}</td></tr>
-   <tr><td class="h">담임</td><td colspan="4">${(+d.hrMid === 0 && +d.hrHigh === 0 && d.hrMid !== "" && d.hrMid != null) ? "없음" : `중학교 ( ${esc(d.hrMid ?? "")} )년 &nbsp;&nbsp;&nbsp; 고등학교 ( ${esc(d.hrHigh ?? "")} )년`}</td></tr>
-   ${d.headPlanned ? `<tr><td class="h">${YEAR}학년도<br>업무</td><td colspan="5" class="rk" style="padding:12px 8px">부장 예정 : ${esc(d.headDept || "")}</td></tr>` : `
+   <tr><td class="h">담임</td><td colspan="4">${NOEXP ? "해당 없음" : (+d.hrMid === 0 && +d.hrHigh === 0 && d.hrMid !== "" && d.hrMid != null) ? "없음" : `중학교 ( ${esc(d.hrMid ?? "")} )년 &nbsp;&nbsp;&nbsp; 고등학교 ( ${esc(d.hrHigh ?? "")} )년`}</td></tr>
+   ${d.headPlanned ? `<tr><td class="h">${YEAR}학년도<br>업무</td><td colspan="5" class="rk" style="padding:12px 8px">부장 예정 : ${esc(d.headDept || "")}</td></tr>` : FIX ? `<tr><td class="h">${YEAR}학년도<br>업무</td><td colspan="5" class="rk" style="padding:12px 8px">${esc(d.subject)} 교사 (업무 고정, 담임·비담임·부장 희망 해당 없음)</td></tr>` : `
    <tr><td class="h">업무군</td><td class="h">희망 여부</td><td class="h" colspan="4">세부 희망 (1, 2, 3지망)</td></tr>
    <tr><td class="h">담임</td><td class="c rk">${rk("담임")}</td><td class="h">희망 학년</td><td colspan="3">1지망: ${pick(d.hrPicks, 0)} &nbsp;&nbsp; 2지망: ${pick(d.hrPicks, 1)} &nbsp;&nbsp; 3지망: ${pick(d.hrPicks, 2)}</td></tr>
    <tr><td class="h">비담임</td><td class="c rk">${rk("비담임")}</td><td class="h">희망 부서<br>및 업무</td><td colspan="3">1지망: ${nonPick(0)}<br>2지망: ${nonPick(1)}<br>3지망: ${nonPick(2)}</td></tr>
