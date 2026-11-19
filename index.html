@@ -332,7 +332,8 @@ function renderPicks(){
 
 /* ===== 단계 이동 ===== */
 const HEAD_SKIP=[3,4];   // 부장 예정자는 3단계(경력)·4단계(근무교) 생략
-const skipStep = i => (ROUTE==="head" && HEAD_SKIP.includes(i)) || (S.cat==="fixed" && i===5);   // 비교과·특수는 5단계(희망 업무) 생략
+const fixedSchool = () => S.cat==="fixed" && ROUTE==="school";   // 업무 고정 + 옥빛중 재직: 근무교·담당업무를 물을 필요 없음
+const skipStep = i => (ROUTE==="head" && HEAD_SKIP.includes(i)) || (S.cat==="fixed" && i===5) || (fixedSchool() && i===4);
 const simple = () => ROUTE==="head" || S.cat==="fixed";
 function renderSteps(){
   const w=$("steps"); w.innerHTML="";
@@ -372,7 +373,7 @@ function stepErrors(n){
     if(ROUTE==="head" && !S.staff) E.push("2026학년도 근무 구분(본교 재직 / 전입·신규)을 선택하세요.");
     if(S.staff){
       if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
-      else if(d.prev.school!=="없음" && !d.prev.task && !noTask()) E.push("2026학년도 담당업무를 입력하세요.");
+      else if(d.prev.school!=="없음" && !d.prev.task && !noTask() && !fixedSchool()) E.push("2026학년도 담당업무를 입력하세요.");
     } else if(ROUTE!=="head") E.push("교사 구분을 먼저 선택하세요.");
     return E; }
   if(n===5){
@@ -458,7 +459,7 @@ function validate(d){
   if(d.phone && !/^01[0-9]-?\d{3,4}-?\d{4}$/.test(d.phone)) E.push("휴대폰번호 형식을 확인하세요. (예: 010-1234-5678)");
   if(S.staff){
     if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
-    else if(d.prev.school!=="없음" && !d.prev.task && !noTask()) E.push("2026학년도 담당업무를 입력하세요.");
+    else if(d.prev.school!=="없음" && !d.prev.task && !noTask() && !fixedSchool()) E.push("2026학년도 담당업무를 입력하세요.");
   }
   if(!noExp() && !d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
   if(!noExp() && (d.hrMid===""||d.hrHigh==="")) E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
