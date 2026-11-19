@@ -353,7 +353,7 @@ function stepErrors(n){
     if(ROUTE==="head" && !S.staff) E.push("2026학년도 근무 구분(본교 재직 / 전입·신규)을 선택하세요.");
     if(S.staff){
       if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
-      else if(d.prev.school!=="없음" && !d.prev.task) E.push("2026학년도 담당업무를 입력하세요.");
+      else if(d.prev.school!=="없음" && !d.prev.task && !noExp()) E.push("2026학년도 담당업무를 입력하세요.");
     } else if(ROUTE!=="head") E.push("교사 구분을 먼저 선택하세요.");
     return E; }
   if(n===5){
@@ -398,7 +398,7 @@ function collect(){
   const isNew=S.staff==="전입·신규";
   const none=isNew && $("noSchool").checked;
   const school=none?"없음":isNew?d.pSchool:SCHOOL;
-  const task=none?"-":d.pTask;
+  const task=none?"-":noExp()?"":d.pTask;
   const prev={school, task};
   const t={is:isNew, school, post:"", grade:"", task};   // 수집 서버 호환용
   return { name:d.name, birth:d.birth, license:d.license, subject:d.subject, address:d.address, phone:d.phone,
@@ -421,7 +421,7 @@ function validate(d){
   if(d.phone && !/^01[0-9]-?\d{3,4}-?\d{4}$/.test(d.phone)) E.push("휴대폰번호 형식을 확인하세요. (예: 010-1234-5678)");
   if(S.staff){
     if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
-    else if(d.prev.school!=="없음" && !d.prev.task) E.push("2026학년도 담당업무를 입력하세요.");
+    else if(d.prev.school!=="없음" && !d.prev.task && !noExp()) E.push("2026학년도 담당업무를 입력하세요.");
   }
   if(!noExp() && !d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
   if(!noExp() && (d.hrMid===""||d.hrHigh==="")) E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
@@ -464,7 +464,7 @@ function update(){
   $("headPicks").classList.toggle("hide", closed || S.wantHead!=="희망");
   $("staffNeed").classList.toggle("hide", !!S.staff); $("prevWrap").classList.toggle("hide", !S.staff); $("careerWrap").classList.toggle("hide",$("noCareer").checked); $("hrWrap").classList.toggle("hide",$("noHR").checked);
   const isN=S.staff==="전입·신규", none=isN&&$("noSchool").checked;
-  $("noSchoolWrap").classList.toggle("hide", !isN); $("pSchoolWrap").classList.toggle("hide", none); $("pTask").closest("label").classList.toggle("hide", none);
+  $("noSchoolWrap").classList.toggle("hide", !isN); $("pSchoolWrap").classList.toggle("hide", none); $("pTask").closest("label").classList.toggle("hide", none || noExp());
   const ps=$("pSchool"); if(S.staff==="본교"){ ps.value=SCHOOL; ps.disabled=true; } else if(ps.disabled){ ps.disabled=false; ps.value=""; } $("arrivalWrap").classList.toggle("hide", !S.staff && ROUTE!=="head");
   /* 단계별: 5단계는 구분(ROUTE)에 따라 부장 예정 확인 / 희망 업무로 갈림 */
   const isHeadRoute = ROUTE==="head";
