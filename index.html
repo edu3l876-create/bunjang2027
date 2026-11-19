@@ -286,7 +286,7 @@ function opt(list, val, ph){ return `<option value="">${ph}</option>` + list.map
 
 const openHeads = () => CFG.depts.filter(d=>d.headOpen!==false).map(d=>d.name);   // 부장 모집 부서 (설정 탭 C열)
 const headN = () => Math.min(3, openHeads().length);                                 // 부장 지망 개수 (모집 부서 수에 따라 0~3)
-const headOn = () => !!S.staff && headN()>0;
+const headOn = () => !!S.staff && headN()>0 && !noHr();
 function renderPicks(){
   $("headDeptTxt").textContent=S.headDept;
   S.headPicks=S.headPicks.map(v=>openHeads().includes(v)?v:"");
@@ -401,7 +401,7 @@ function collect(){
     career:$("noCareer").checked?"없음":d.career, heads:[], hrMid:$("noHR").checked?"0":d.hrMid, hrHigh:$("noHR").checked?"0":d.hrHigh,
     prio:S.prio, groupRank:S.prio?[S.prio, S.prio==="담임"?"비담임":"담임"]:[],
     hrPicks:S.hrPicks.slice(), nonPicks:noHr()?[]:S.nonPicks.map(p=>({...p})),
-    wantHead:headOn()?S.wantHead:"", headPicks:headOn()&&S.wantHead==="희망"?S.headPicks.slice(0,headN()):[], headClosed:!!S.staff&&!headOn(),
+    wantHead:headOn()?S.wantHead:"", headPicks:headOn()&&S.wantHead==="희망"?S.headPicks.slice(0,headN()):[], headClosed:!!S.staff&&headN()===0,
     reason:d.reason, consent:S.consent };
 }
 function collectAll(){ const d=collect(); if(!S.planned) return d;
@@ -453,7 +453,7 @@ function update(){
   if(ROUTE==="head") S.headStaff=S.staff;
   document.querySelectorAll("[data-route]").forEach(b=>b.classList.toggle("on", b.dataset.route===ROUTE));
   document.querySelectorAll("[data-ox]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.classList.toggle("on", S[g.dataset.ox]===b.dataset.v)));
-  const closed=headN()===0; $("headBlock").classList.toggle("hide", !S.staff);
+  const closed=headN()===0; $("headBlock").classList.toggle("hide", !S.staff || noHr());
   $("headClosedMsg").classList.toggle("hide", !closed); $("headOx").classList.toggle("hide", closed); $("headReq").classList.toggle("hide", closed); $("sec6HeadTxt").classList.toggle("hide", closed);
   $("headNote").textContent = openHeads().length>0 && openHeads().length<=3 ? `(공석: ${openHeads().join(", ")})` : "";
   $("headPicks").classList.toggle("hide", closed || S.wantHead!=="희망");
@@ -480,7 +480,7 @@ function update(){
   $("hrBlock").classList.toggle("hide", noHr());
   $("nonBlock").classList.toggle("hide", noHr());
   $("noHrMsg").classList.toggle("hide", !noHr());
-  $("noHrMsg").textContent = noHr() ? `${$("subject").value} 교사는 담당 업무가 정해져 있어 담임·비담임 희망을 받지 않습니다.` : "";
+  $("noHrMsg").textContent = noHr() ? `${$("subject").value} 교사는 담당 업무가 정해져 있어 담임·비담임·부장 희망을 받지 않습니다. 6단계로 넘어가세요.` : "";
   const d=collectAll(); const E=validate(d);
   $("validation").innerHTML = E.length ? `<div class="status bad">${E.map(e=>"• "+esc(e)).join("<br>")}</div>` : `<div class="status ok">모두 입력되었습니다. 제출할 수 있습니다.</div>`;
   const pb=$("myPrintBtn"); pb.disabled=E.length>0; pb.title=E.length?"필수 항목을 모두 입력하면 출력할 수 있습니다.":"";
