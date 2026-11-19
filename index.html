@@ -117,7 +117,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
     <label class="f">성명 <i class="req">*</i><input id="name" autocomplete="name" placeholder="예: 홍길동"></label>
     <label class="f">생년월일 <i class="req">*</i><input id="birth" type="date"></label>
     <label class="f">소지자격 <i class="req">*</i><input id="license" placeholder="예: 중등1급정교사(국어)"></label>
-    <label class="f">발령교과 <i class="req">*</i><select id="subject"><option value="">교과 선택</option><option>국어</option><option>사회</option><option>역사</option><option>도덕</option><option>수학</option><option>과학</option><option>기술·가정</option><option>정보</option><option>체육</option><option>음악</option><option>미술</option><option>영어</option><option>한문</option><option>생활 중국어</option><option>특수</option><option>보건</option><option>상담</option><option>영양</option><option>사서</option><option>진로</option><option>기타</option></select></label>
+    <label class="f">발령교과 <i class="req">*</i><select id="subject"><option value="">교과 선택</option><option>국어</option><option>사회</option><option>역사</option><option>도덕</option><option>수학</option><option>과학</option><option>기술·가정</option><option>정보</option><option>체육</option><option>음악</option><option>미술</option><option>영어</option><option>한문</option><option>생활 중국어</option><option>특수</option><option>보건</option><option>상담</option><option>영양</option><option>사서</option><option>진로</option></select></label>
     <label class="f full">주소 <i class="req">*</i><input id="address" autocomplete="street-address" placeholder="예: 경기도 양주시 옥정동 OO아파트 101동 1001호"></label>
     <label class="f">휴대폰번호 <i class="req">*</i><input id="phone" type="tel" inputmode="numeric" placeholder="010-0000-0000"></label>
   </div>
@@ -183,12 +183,15 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 
   <div id="sec6">
     <p class="note" id="sec6Note" style="margin:0 0 10px">담임과 비담임 중 우선 희망하는 쪽을 선택하고, 각각 지망을 기재해 주세요. 담임 희망 학년은 발령교과가 개설된 학년 안에서 고릅니다. <span id="sec6HeadTxt">부장은 희망 여부를 선택하고, 희망하는 경우 공석 부서 중에서 선택합니다.</span></p>
+    <div id="hrBlock">
     <div class="q">① 우선 희망 <i class="req">*</i></div>
     <div class="ox" data-ox="prio"><button data-v="담임">담임 우선</button><button data-v="비담임">비담임 우선</button></div>
 
     <div class="q">② 담임 — 희망 학년 <i class="req">*</i></div>
     <p class="note" id="hrNote" style="margin:0 0 6px"></p>
     <div id="hrPicks" class="picks"></div>
+    </div>
+    <div id="noHrMsg" class="status ok hide" style="margin:6px 0 10px"></div>
 
     <div class="q">③ 비담임 — 희망 부서 및 업무 <i class="req">*</i></div>
     <div id="nonPicks" class="picks"></div>
@@ -271,7 +274,9 @@ const SUBJECT_GRADES = {
   "한문":["2학년"], "생활 중국어":["3학년"]
 };
 const hrGrades = () => { const g=(CFG.subjectGrades||SUBJECT_GRADES)[$("subject").value]; return g ? CFG.grades.filter(x=>g.includes(x)) : CFG.grades.slice(); };
-const hrN = () => Math.min(3, hrGrades().length);
+const NO_HR_SUBJECTS = ["특수","보건","상담","영양","사서","진로"];   // 담임 희망을 받지 않는 교과
+const noHr = () => NO_HR_SUBJECTS.includes($("subject").value);
+const hrN = () => noHr() ? 0 : Math.min(3, hrGrades().length);
 const headDepts = () => CFG.depts.map(d=>d.name);
 const nonDepts = () => CFG.depts.filter(d=>d.tasks && d.tasks.length && d.quota!==0);   // 비담임 정원 0명 부서는 지망 목록에서 제외
 function opt(list, val, ph){ return `<option value="">${ph}</option>` + list.map(v=>`<option${v===val?" selected":""}>${esc(v)}</option>`).join(""); }
@@ -290,6 +295,8 @@ function renderPicks(){
   const gp=$("hrPicks"); gp.innerHTML="";
   { const g=hrGrades(), n=hrN(); S.hrPicks=S.hrPicks.map(v=>g.includes(v)?v:"").slice(0,n); while(S.hrPicks.length<n) S.hrPicks.push("");
     const sj=$("subject").value;
+    if(noHr()) S.prio="비담임"; else if(S.prio==="비담임" && S._autoPrio) S.prio="";
+    S._autoPrio=noHr();
     $("hrNote").textContent = !sj ? "※ 2단계에서 발령교과를 고르면, 그 교과가 개설된 학년만 선택할 수 있습니다."
       : n<3 ? `※ ${sj} 교과는 2027학년도에 ${g.map(x=>x.replace("학년","")).join("·")}학년에만 개설되어 담임 희망은 ${n===1?"1지망만":"1~"+n+"지망까지"} 고릅니다.` : ""; }
   S.hrPicks.forEach((v,i)=>{ const r=document.createElement("div"); r.className="pickrow one";
@@ -417,7 +424,7 @@ function validate(d){
     if(!S.prio) E.push("담임과 비담임 중 우선 희망을 선택하세요.");
   }
   const chk3=(arr,label,unit)=>{ const n=arr.length, rng=n>1?`1~${n}지망`:"1지망"; if(arr.some(v=>!v)) E.push(`${label} ${rng}을 모두 선택하세요.`); else if(new Set(arr).size<n) E.push(`${label} ${rng}은 서로 다른 ${unit}로 선택하세요.`); };
-  chk3(d.hrPicks,"담임 희망 학년","학년");
+  if(!noHr()) chk3(d.hrPicks,"담임 희망 학년","학년");
   if(d.nonPicks.some(p=>!p.dept||!p.task)) E.push("비담임 희망 부서 및 업무 1~3지망을 모두 선택하세요.");
   else if(new Set(d.nonPicks.map(p=>p.dept)).size<3) E.push("비담임 희망 1~3지망은 서로 다른 부서로 선택하세요.");
   if(headOn()){
@@ -468,6 +475,9 @@ function update(){
       headCheckState==="error" ? "서버 확인에 실패했습니다. 네트워크를 확인한 뒤 [예정 여부 다시 확인]을 눌러 주세요." :
       `입력한 성명(${nm})이 부장 예정자 명단에 없습니다.`;
   }
+  $("hrBlock").classList.toggle("hide", noHr());
+  $("noHrMsg").classList.toggle("hide", !noHr());
+  $("noHrMsg").textContent = noHr() ? `${$("subject").value} 교사는 담임 희망을 받지 않습니다. 비담임 희망 부서와 업무만 기재해 주세요.` : "";
   const d=collectAll(); const E=validate(d);
   $("validation").innerHTML = E.length ? `<div class="status bad">${E.map(e=>"• "+esc(e)).join("<br>")}</div>` : `<div class="status ok">모두 입력되었습니다. 제출할 수 있습니다.</div>`;
   const pb=$("myPrintBtn"); pb.disabled=E.length>0; pb.title=E.length?"필수 항목을 모두 입력하면 출력할 수 있습니다.":"";
