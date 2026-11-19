@@ -86,7 +86,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 <body>
 <header>
   <h1>2027학년도 담임 및 업무분장 희망 조사서</h1>
-  <p>옥빛중학교 · <span style="color:#ffd6cf;font-weight:700">*</span> 표시는 필수 항목입니다. 업무는 배부된 업무분장표를 보고 선택합니다.</p>
+  <p>옥빛중학교 · <span style="color:#ffd6cf;font-weight:700">*</span> 표시는 필수 항목입니다.</p>
 </header>
 <main>
 <div class="steps" id="steps"></div>
@@ -95,15 +95,14 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 <!-- 1단계: 교사 구분 -->
 <section class="card step" id="step-1">
   <h2>1단계. 교사 구분 <i class="req">*</i></h2>
-  <div class="routes" id="routeBtns">
-    <button type="button" data-route="head"><b>부장 예정자</b><span>2027학년도 부장 예정 교사입니다.</span></button>
-    <button type="button" data-route="school"><b>본교 재직교사</b><span>2026학년도에 옥빛중학교에서 근무한 교사입니다.</span></button>
-    <button type="button" data-route="transfer"><b>전입·신규교사</b><span>2027학년도에 옥빛중학교로 발령받은 교사입니다.</span></button>
+  <div class="routes" id="catBtns">
+    <button type="button" data-cat="subject"><b>교과 교사</b></button>
+    <button type="button" data-cat="fixed"><b>비교과·특수 교사</b><span>보건·상담·영양·사서·진로·특수</span></button>
+    <button type="button" data-cat="head"><b>부장 예정자</b><span>2027학년도 부장 예정 교사입니다.</span></button>
   </div>
-  <div class="card guide" style="margin:12px 0 0">
-    <h2>희망 조사서 작성 안내</h2>
-    <p>본 조사서는 특정 업무 하나를 신청하는 서류가 아니라, 모든 직무를 배정하는 과정에서 <b>교원 개개인의 희망 순위를 최대한 반영하기 위한 기초 자료</b>입니다.</p>
-    <p>1순위만 기재할 경우, 희망이 특정 업무에 집중되면 본인의 의사를 확인하지 못한 상태에서 배정이 이루어질 수 있습니다. 2·3순위까지 기재해 주시면 본인의 의사에 보다 가까운 방향으로 배정할 수 있습니다.</p>
+  <div id="staffQ" class="hide">
+    <div class="q">2026학년도 근무 <i class="req">*</i></div>
+    <div class="ox" id="staffOx"><button type="button" data-staff="school">옥빛중 재직</button><button type="button" data-staff="transfer">전입·신규</button></div>
   </div>
   <div class="nav"><button class="btn next" id="next1" type="button">다음 →</button></div>
   <div class="stepmsg" id="msg-1"></div>
@@ -120,7 +119,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
     <label class="f full">주소 <i class="req">*</i><input id="address" autocomplete="street-address" placeholder="예: 경기도 양주시 옥정동 OO아파트 101동 1001호"></label>
     <label class="f">휴대폰번호 <i class="req">*</i><input id="phone" type="tel" inputmode="numeric" placeholder="010-0000-0000"></label>
   </div>
-  <p class="note" id="headCheckNote">부장 예정자는 성명을 입력하면 서버의 예정자 명단과 자동으로 확인합니다.</p>
+  <p class="note hide" id="headCheckNote">성명으로 부장 예정자 명단을 확인합니다.</p>
   <div class="nav"><button class="btn" id="prev2" type="button">← 이전</button><button class="btn next" id="next2" type="button">다음 →</button></div>
   <div class="stepmsg" id="msg-2"></div>
 </section>
@@ -152,11 +151,6 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 <!-- 4단계: 2026학년도 근무교 및 담당업무 -->
 <section class="card step" id="step-4">
   <h2>4단계. 2026학년도 근무교 및 담당업무 <i class="req">*</i></h2>
-  <div id="headStaffWrap" class="hide">
-    <div class="q">2026학년도 근무 구분 <i class="req">*</i></div>
-    <div class="ox" data-ox="headStaff"><button data-v="본교">본교 재직</button><button data-v="전입·신규">전입·신규</button></div>
-    <p class="note">부장 예정자도 2026학년도에 어디서 근무했는지 알려 주세요. 본교 재직이면 근무교는 옥빛중학교로 자동 입력됩니다.</p>
-  </div>
   <p class="note" id="staffNeed" style="margin:0">※ 1단계에서 교사 구분을 먼저 선택하세요.</p>
   <div id="prevWrap" class="grid hide">
     <label class="chk full hide" id="noSchoolWrap"><input type="checkbox" id="noSchool"> 2026학년도 근무교 없음</label>
@@ -184,7 +178,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   </div>
 
   <div id="sec6">
-    <p class="note" id="sec6Note" style="margin:0 0 10px">담임과 비담임 중 우선 희망하는 쪽을 선택하고, 각각 지망을 기재해 주세요. 담임 희망 학년은 발령교과가 개설된 학년 안에서 고릅니다. <span id="sec6HeadTxt">부장은 희망 여부를 선택하고, 희망하는 경우 공석 부서 중에서 선택합니다.</span></p>
+    <p class="note" id="sec6Note" style="margin:0 0 10px">업무분장표를 보고, 각 지망은 서로 다른 학년·부서로 고릅니다. 2·3지망까지 적으면 희망에 가깝게 배정할 수 있습니다.<span id="sec6HeadTxt"></span></p>
     <div id="hrBlock">
     <div class="q">① 우선 희망 <i class="req">*</i></div>
     <div class="ox" data-ox="prio"><button data-v="담임">담임 우선</button><button data-v="비담임">비담임 우선</button></div>
@@ -206,7 +200,6 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
     <div class="ox" data-ox="wantHead" id="headOx"><button data-v="희망">희망</button><button data-v="비희망">비희망</button></div>
     <div id="headPicks" class="picks hide"></div>
     </div>
-    <p class="note">※ 각 지망은 서로 다른 부서(학년)로 선택하고, 업무는 배부된 업무분장표를 참고하세요.</p>
   </div>
   <div class="nav"><button class="btn" id="prev5" type="button">← 이전</button><button class="btn next" id="next5" type="button">다음 →</button></div>
   <div class="stepmsg" id="msg-5"></div>
@@ -214,10 +207,12 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 
 <!-- 6단계: 희망 사유 및 동의 -->
 <section class="card step" id="step-6">
-  <h2>6단계. 희망 사유 및 개인정보 동의</h2>
+  <h2 id="step6Title">6단계. 희망 사유 및 개인정보 동의</h2>
+  <div id="reasonBlock">
   <div class="q">희망 사유 및 참고사항 <span class="note">(선택 사항)</span></div>
   <textarea id="reason" style="min-height:120px" placeholder="예) 2학년 담임 경험이 있어 학년 운영에 도움이 될 수 있습니다.&#10;성적 업무를 2년간 맡아 업무에 익숙합니다.&#10;업무 배정 시 고려가 필요한 사항: 육아시간 사용 예정"></textarea>
-  <p class="note">희망한 업무를 맡고자 하는 이유와 관련 경험·역량을 적어 주세요. 업무 배정 시 고려가 필요한 사항이 있으면 함께 적어 주세요.</p>
+  <p class="note">희망 이유나 배정 시 고려할 사항을 적어 주세요.</p>
+  </div>
   <div class="q">개인정보 수집·이용 동의 <i class="req">*</i></div>
   <div class="consent">
     「개인정보 보호법」에 따라 학교 업무에 도움을 받고자, 아래와 같이 개인정보 수집·이용·제공 동의를 받고자 합니다.
@@ -238,7 +233,6 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 <!-- 7단계: 확인·제출 -->
 <section class="card step" id="step-7">
   <h2>7단계. 확인하고 제출하기</h2>
-  <p class="note" style="margin:0 0 10px">입력한 내용을 마지막으로 확인하세요. 틀린 항목이 있으면 이전 단계로 돌아가 고칠 수 있습니다.</p>
   <div id="summary"></div>
   <div id="validation"></div>
   <button class="btn primary" id="submitBtn" style="margin-top:10px">제출하기</button>
@@ -246,7 +240,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   <p class="note">같은 성명·생년월일로 다시 제출하면 이전 제출 내용이 수정됩니다.</p>
   <button class="btn" id="previewBtn" style="margin-top:8px;width:100%">출력 양식 미리보기</button>
   <button class="btn" id="myPrintBtn" style="margin-top:4px;width:100%" disabled>내 조사서 출력 (A4 1쪽)</button>
-  <p class="note" style="margin-top:2px">※ 필수 항목을 모두 입력하면 [내 조사서 출력]이 켜집니다. 제출한 뒤 출력해 서명하세요.</p>
+  <p class="note" style="margin-top:2px">※ 제출한 뒤 출력해 서명하세요.</p>
   <button class="btn x" id="resetBtn" style="margin-top:4px;width:100%">입력 초기화</button>
   <div class="nav"><button class="btn" id="prev7" type="button">← 이전</button></div>
 </section>
@@ -297,7 +291,7 @@ const noTask = () => !!(subj() && subj().task===false); // 2026 담당업무 입
 const hrN = () => noHr() ? 0 : Math.min(3, hrGrades().length);
 function renderSubjects(){   // 발령교과 목록을 구분(교과·특수·비교과)별로 묶어 표시
   const sel=$("subject"), cur=sel.value, groups=[];
-  SUBJECTS().forEach(x=>{ let g=groups.find(y=>y.name===x.group); if(!g){ g={name:x.group,items:[]}; groups.push(g); } g.items.push(x.name); });
+  SUBJECTS().filter(x=> S.cat==="subject" ? !x.fixed : S.cat==="fixed" ? x.fixed : true).forEach(x=>{ let g=groups.find(y=>y.name===x.group); if(!g){ g={name:x.group,items:[]}; groups.push(g); } g.items.push(x.name); });
   sel.innerHTML=`<option value="">교과 선택</option>`+groups.map(g=>`<optgroup label="${esc(g.name)}">${g.items.map(n=>`<option${n===cur?" selected":""}>${esc(n)}</option>`).join("")}</optgroup>`).join("");
 }
 const headDepts = () => CFG.depts.map(d=>d.name);
@@ -338,12 +332,13 @@ function renderPicks(){
 
 /* ===== 단계 이동 ===== */
 const HEAD_SKIP=[3,4];   // 부장 예정자는 3단계(경력)·4단계(근무교) 생략
-const skipStep = i => ROUTE==="head" && HEAD_SKIP.includes(i);
+const skipStep = i => (ROUTE==="head" && HEAD_SKIP.includes(i)) || (S.cat==="fixed" && i===5);   // 비교과·특수는 5단계(희망 업무) 생략
+const simple = () => ROUTE==="head" || S.cat==="fixed";
 function renderSteps(){
   const w=$("steps"); w.innerHTML="";
   for(let i=1;i<=7;i++){
     const b=document.createElement("button"); b.type="button";
-    b.innerHTML=`<span class="n">${i}</span>${i===5&&ROUTE==="head"?"부장 예정":STEP_TITLES[i]}`;
+    b.innerHTML=`<span class="n">${i}</span>${i===5&&ROUTE==="head"?"부장 예정":i===6&&simple()?"동의":STEP_TITLES[i]}`;
     b.classList.toggle("done", i<STEP && !skipStep(i)); b.classList.toggle("cur", i===STEP); b.disabled = i>MAXSTEP || skipStep(i);
     if(skipStep(i)) b.title="부장 예정자는 생략";
     b.onclick=()=>{ if(i<=MAXSTEP) showStep(i); };
@@ -359,7 +354,7 @@ function showStep(n){
   const m=$("msg-"+n); if(m) m.innerHTML="";
 }
 function stepErrors(n){
-  if(n===1) return ROUTE?[]:["교사 구분을 선택하세요."];
+  if(n===1) return !S.cat?["교사 구분을 선택하세요."]: (S.cat!=="head" && !ROUTE)?["2026학년도 근무(옥빛중 재직 / 전입·신규)를 선택하세요."]:[];
   const d=collectAll();
   if(n===2){ const E=[];
     [["name","성명"],["birth","생년월일"],["license","소지자격"],["subject","발령교과"],["address","주소"],["phone","휴대폰번호"]].forEach(([k,l])=>{ if(!d[k]) E.push(`${l}을(를) 입력하세요.`); });
@@ -399,7 +394,14 @@ function setRoute(r){
   if(r==="transfer"){ S.staff="전입·신규"; S.headStaff=""; $("arrivalDate").value=`${YEAR}-03-01`; }
   $("noSchool").checked=false; renderPicks(); update(); showStep(2);
 }
-document.querySelectorAll("[data-route]").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
+document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
+  S.cat=b.dataset.cat; renderSubjects();
+  if(S.cat==="head") return setRoute("head");
+  if(ROUTE==="head") ROUTE="";
+  if(ROUTE) return setRoute(ROUTE);          // 근무 구분을 이미 골랐으면 바로 다음 단계
+  renderPicks(); update();
+});
+document.querySelectorAll("[data-staff]").forEach(b=>b.onclick=()=>setRoute(b.dataset.staff));
 [1,2,3,4,5,6].forEach(n=>{ const nx=$("next"+n); if(nx) nx.onclick=()=>goNext(n); });
 [2,3,4,5,6,7].forEach(n=>{ const pv=$("prev"+n); if(pv) pv.onclick=()=>{ let p=n-1; while(skipStep(p)) p--; showStep(p); }; });
 $("backToRoute").onclick=()=>showStep(1);
@@ -481,7 +483,7 @@ function renderSummary(){
   const el=$("summary"); if(!el || STEP!==7) return;
   const d=collectAll();
   const row=(k,v)=>`<tr><td>${k}</td><td>${v||"-"}</td></tr>`;
-  const routeLabel = ROUTE==="head"?"부장 예정자":ROUTE==="school"?"본교 재직교사":ROUTE==="transfer"?"전입·신규교사":"-";
+  const routeLabel = ROUTE==="head"?"부장 예정자":`${S.cat==="fixed"?"비교과·특수 교사":"교과 교사"} · ${ROUTE==="school"?"옥빛중 재직":ROUTE==="transfer"?"전입·신규":"-"}`;
   let h=`<table class="sum">${row("교사 구분",esc(routeLabel))}${row("성명",esc(d.name))}${row("생년월일",esc(d.birth))}${row("소지자격",esc(d.license))}${row("발령교과",esc(d.subject))}${row("주소",esc(d.address))}${row("휴대폰",esc(d.phone))}${row("교육 경력",d.careerYears?esc(d.careerYears)+"년":"")}${row("본교 발령일",esc(d.arrivalDate))}${row("2026 근무교",esc(d.prev.school))}${row("2026 담당업무",esc(d.prev.task))}${row("업무 경력",esc(d.career))}${row("담임 경력",`중 ${esc(d.hrMid)}년 · 고 ${esc(d.hrHigh)}년`)}`;
   if(d.headPlanned) h+=row("2027 업무",esc(d.headDept)+" 부장 예정");
   else h+=row("우선 희망",esc(d.prio))+row("담임 지망",(d.hrPicks||[]).map(esc).join(" › "))+row("비담임 지망",(d.nonPicks||[]).map(p=>esc(p.dept+(p.task?" – "+p.task:""))).join(" › "))+row("부장 희망",d.wantHead?esc(d.wantHead)+((d.headPicks||[]).filter(Boolean).length?" ("+(d.headPicks||[]).filter(Boolean).map(esc).join(", ")+")":""):"-");
@@ -491,10 +493,15 @@ function renderSummary(){
 
 function update(){
   if(ROUTE==="head") S.headStaff=S.staff;
-  document.querySelectorAll("[data-route]").forEach(b=>b.classList.toggle("on", b.dataset.route===ROUTE));
+  document.querySelectorAll("[data-cat]").forEach(b=>b.classList.toggle("on", b.dataset.cat===S.cat));
+  document.querySelectorAll("[data-staff]").forEach(b=>b.classList.toggle("on", b.dataset.staff===ROUTE));
+  $("staffQ").classList.toggle("hide", !S.cat || S.cat==="head");
+  $("headCheckNote").classList.toggle("hide", ROUTE!=="head");
+  $("reasonBlock").classList.toggle("hide", simple());
+  $("step6Title").textContent = simple() ? "6단계. 개인정보 동의" : "6단계. 희망 사유 및 개인정보 동의";
   document.querySelectorAll("[data-ox]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.classList.toggle("on", S[g.dataset.ox]===b.dataset.v)));
   const closed=headN()===0; $("headBlock").classList.toggle("hide", !S.staff || noHr());
-  $("headClosedMsg").classList.toggle("hide", !closed); $("headOx").classList.toggle("hide", closed); $("headReq").classList.toggle("hide", closed); $("sec6HeadTxt").classList.toggle("hide", closed);
+  $("headClosedMsg").classList.toggle("hide", !closed); $("headOx").classList.toggle("hide", closed); $("headReq").classList.toggle("hide", closed); 
   $("headNote").textContent = openHeads().length>0 && openHeads().length<=3 ? `(공석: ${openHeads().join(", ")})` : "";
   $("headPicks").classList.toggle("hide", closed || S.wantHead!=="희망");
   $("staffNeed").classList.toggle("hide", !!S.staff); $("prevWrap").classList.toggle("hide", !S.staff); $("careerWrap").classList.toggle("hide",$("noCareer").checked); $("hrWrap").classList.toggle("hide",$("noHR").checked);
@@ -503,7 +510,6 @@ function update(){
   const ps=$("pSchool"); if(S.staff==="본교"){ ps.value=SCHOOL; ps.disabled=true; } else if(ps.disabled){ ps.disabled=false; ps.value=""; } $("arrivalWrap").classList.toggle("hide", !S.staff && ROUTE!=="head");
   /* 단계별: 5단계는 구분(ROUTE)에 따라 부장 예정 확인 / 희망 업무로 갈림 */
   const isHeadRoute = ROUTE==="head";
-  $("headStaffWrap").classList.toggle("hide", !isHeadRoute);
   $("headPlanSec").classList.toggle("hide", !(S.planned && isHeadRoute));
   $("sec6").classList.toggle("hide", S.planned || isHeadRoute);
   $("step5Title").textContent = isHeadRoute ? "5단계. 부장 예정 확인" : "5단계. 2027학년도 희망 업무";
@@ -519,7 +525,7 @@ function update(){
   }
   $("hrBlock").classList.toggle("hide", noHr());
   $("expBlock").classList.toggle("hide", noExp());
-  $("noExpMsg").classList.toggle("hide", !noExp());
+  $("noExpMsg").classList.add("hide");
   $("noExpMsg").textContent = noExp() ? `${$("subject").value} 교사는 업무 경력과 담임 경력을 입력하지 않습니다.` : "";
   $("nonBlock").classList.toggle("hide", noHr());
   $("noHrMsg").classList.toggle("hide", !noHr());
@@ -534,7 +540,7 @@ function update(){
 /* 임시 저장 (이 기기 브라우저에만) */
 const KEY="okbit-bunjang-2027";
 function save(){ try{ const o={S,ROUTE,STEP,MAXSTEP,noSchool:$("noSchool").checked,noCareer:$("noCareer").checked,noHR:$("noHR").checked}; TEXT.forEach(k=>o[k]=$(k).value); localStorage.setItem(KEY,JSON.stringify(o)); }catch(e){} }
-function load(){ try{ const o=JSON.parse(localStorage.getItem(KEY)||"null"); if(!o) return; TEXT.forEach(k=>{ if(typeof o[k]==="string") $(k).value=o[k]; }); if(o.S) Object.assign(S,o.S); delete S.groupRank; if(o.ROUTE) ROUTE=o.ROUTE; if(o.STEP) STEP=o.STEP; if(o.MAXSTEP) MAXSTEP=o.MAXSTEP; $("noSchool").checked=!!o.noSchool; $("noCareer").checked=!!o.noCareer; $("noHR").checked=!!o.noHR; if(S.staff==="전입"||S.staff==="신규") S.staff="전입·신규"; }catch(e){} }
+function load(){ try{ const o=JSON.parse(localStorage.getItem(KEY)||"null"); if(!o) return; if(o.S && !o.S.cat && o.ROUTE) o.S.cat = o.ROUTE==="head" ? "head" : "subject"; TEXT.forEach(k=>{ if(typeof o[k]==="string") $(k).value=o[k]; }); if(o.S) Object.assign(S,o.S); delete S.groupRank; if(o.ROUTE) ROUTE=o.ROUTE; if(o.STEP) STEP=o.STEP; if(o.MAXSTEP) MAXSTEP=o.MAXSTEP; $("noSchool").checked=!!o.noSchool; $("noCareer").checked=!!o.noCareer; $("noHR").checked=!!o.noHR; if(S.staff==="전입"||S.staff==="신규") S.staff="전입·신규"; }catch(e){} }
 
 document.querySelectorAll("input,select,textarea").forEach(el=>{ el.addEventListener("input",update); el.addEventListener("change",update); });
 /* 부장 예정자 확인: 명단은 서버에만 있고, 입력한 성명이 명단에 있는지만 받아 온다 */
@@ -547,7 +553,7 @@ async function checkHead(){ const n=$("name").value.replace(/\s/g,""); if(!SCRIP
   if(h!==S.planned||dep!==S.headDept){
     S.planned=h; S.headDept=dep;
     if(h && ROUTE && ROUTE!=="head"){
-      ROUTE="head";
+      ROUTE="head"; S.cat="head"; renderSubjects();
       const hn=$("headNotice"); hn.textContent=`부장 예정자로 확인되었습니다. 부장 예정자 과정으로 이동합니다. (예정 부서: ${dep})`; hn.classList.remove("hide");
       if(STEP>=5) showStep(5);
     }
@@ -589,7 +595,7 @@ async function loadConfig(){
   try{ const r=await fetch(SCRIPT_URL+"?action=config"); const j=await r.json(); if(j.ok&&j.config&&j.config.depts&&j.config.depts.length) CFG=j.config; }catch(e){}
 }
 
-(async()=>{ renderSubjects(); load(); await loadConfig(); renderSubjects(); renderPicks(); renderSteps(); update(); showStep(STEP||1); checkHead(); })();
+(async()=>{ renderSubjects(); load(); renderSubjects(); await loadConfig(); renderSubjects(); renderPicks(); renderSteps(); update(); showStep(STEP||1); checkHead(); })();
 </script>
 </body>
 </html>
