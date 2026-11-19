@@ -95,7 +95,6 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
 <!-- 1단계: 교사 구분 -->
 <section class="card step" id="step-1">
   <h2>1단계. 교사 구분 <i class="req">*</i></h2>
-  <p class="note" style="margin:0 0 12px">먼저 본인에 해당하는 구분을 하나 선택하세요. 선택에 따라 이후에 나오는 항목이 달라집니다.</p>
   <div class="routes" id="routeBtns">
     <button type="button" data-route="head"><b>부장 예정자</b><span>2027학년도 부장 예정 교사입니다.</span></button>
     <button type="button" data-route="school"><b>본교 재직교사</b><span>2026학년도에 옥빛중학교에서 근무한 교사입니다.</span></button>
@@ -271,23 +270,40 @@ const $ = id => document.getElementById(id);
 const S = { staff:"", headStaff:"", planned:false, headDept:"", prio:"", wantHead:"", consent:"", heads:[], headPicks:["","",""], hrPicks:["","",""], nonPicks:[{dept:"",task:""},{dept:"",task:""},{dept:"",task:""}] };
 const TEXT = ["name","birth","license","subject","address","phone","careerYears","arrivalDate","career","pSchool","pTask","hrMid","hrHigh","reason"];
 
-/* 2027학년도 교육과정 편성표: 교과별 개설 학년 (담임 희망 학년은 이 학년 안에서만 고름) */
-const SUBJECT_GRADES = {
-  "국어":["1학년","2학년","3학년"], "사회":["1학년","3학년"], "역사":["2학년","3학년"], "도덕":["1학년","2학년"],
-  "수학":["1학년","2학년","3학년"], "과학":["1학년","2학년","3학년"], "기술·가정":["2학년","3학년"], "정보":["1학년"],
-  "체육":["1학년","2학년","3학년"], "음악":["1학년","2학년"], "미술":["1학년","3학년"], "영어":["1학년","2학년","3학년"],
-  "한문":["2학년"], "생활 중국어":["3학년"]
-};
-const hrGrades = () => { const g=(CFG.subjectGrades||SUBJECT_GRADES)[$("subject").value]; return g ? CFG.grades.filter(x=>g.includes(x)) : CFG.grades.slice(); };
-const NO_HR_SUBJECTS = ["특수","보건","상담","영양","사서","진로"];   // 담임 희망을 받지 않는 교과
-const noHr = () => NO_HR_SUBJECTS.includes($("subject").value);
-const NO_EXP_SUBJECTS = ["보건","상담","영양","사서","진로"];   // 비교과: 업무·담임 경력 입력 생략
-const noExp = () => NO_EXP_SUBJECTS.includes($("subject").value);
+/* 교과 설정: 수집 시트 "교과설정" 탭에서 불러옴 (없으면 아래 기본값 사용)
+   grades: 개설 학년(담임 희망은 이 학년 안에서) / fixed: 업무 고정(담임·비담임·부장 희망 없음)
+   exp: 업무·담임 경력 입력 / task: 2026 담당업무 입력 / excludeTasks: 비담임 지망 목록에서 뺄 업무 */
+const ALL3=["1학년","2학년","3학년"];
+const DEFAULT_SUBJECTS = [
+  ["국어","교과",ALL3],["사회","교과",["1학년","3학년"]],["역사","교과",["2학년","3학년"]],["도덕","교과",["1학년","2학년"]],
+  ["수학","교과",ALL3],["과학","교과",ALL3],["기술·가정","교과",["2학년","3학년"]],["정보","교과",["1학년"]],
+  ["체육","교과",ALL3],["음악","교과",["1학년","2학년"]],["미술","교과",["1학년","3학년"]],["영어","교과",ALL3],
+  ["한문","교과",["2학년"]],["생활 중국어","교과",["3학년"]]
+].map(([name,group,grades])=>({name,group,grades,fixed:false,exp:true,task:true,excludeTasks:[]}))
+ .concat([
+  {name:"특수",group:"특수",grades:[],fixed:true,exp:false,task:true,excludeTasks:["특수"]},
+  {name:"보건",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["보건"]},
+  {name:"상담",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["전문상담","상담"]},
+  {name:"영양",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["영양"]},
+  {name:"사서",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["사서"]},
+  {name:"진로",group:"비교과",grades:[],fixed:true,exp:false,task:false,excludeTasks:["진로"]}
+ ]);
+const SUBJECTS = () => (CFG.subjects && CFG.subjects.length) ? CFG.subjects : DEFAULT_SUBJECTS;
+const subj = () => SUBJECTS().find(x=>x.name===$("subject").value);
+const hrGrades = () => { const s=subj(); return s && s.grades && s.grades.length ? CFG.grades.filter(x=>s.grades.includes(x)) : CFG.grades.slice(); };
+const noHr = () => !!(subj() && subj().fixed);          // 업무 고정: 담임·비담임·부장 희망 없음
+const noExp = () => !!(subj() && subj().exp===false);  // 업무·담임 경력 입력 생략
+const noTask = () => !!(subj() && subj().task===false); // 2026 담당업무 입력 생략
 const hrN = () => noHr() ? 0 : Math.min(3, hrGrades().length);
+function renderSubjects(){   // 발령교과 목록을 구분(교과·특수·비교과)별로 묶어 표시
+  const sel=$("subject"), cur=sel.value, groups=[];
+  SUBJECTS().forEach(x=>{ let g=groups.find(y=>y.name===x.group); if(!g){ g={name:x.group,items:[]}; groups.push(g); } g.items.push(x.name); });
+  sel.innerHTML=`<option value="">교과 선택</option>`+groups.map(g=>`<optgroup label="${esc(g.name)}">${g.items.map(n=>`<option${n===cur?" selected":""}>${esc(n)}</option>`).join("")}</optgroup>`).join("");
+}
 const headDepts = () => CFG.depts.map(d=>d.name);
-const FIXED_TASKS = ["특수","사서","전문상담","상담","보건","영양","진로"];   // 비교과·특수 고정 업무: 비담임 지망 목록에서 제외
+const FIXED_TASKS = () => SUBJECTS().flatMap(x=>x.excludeTasks||[]);   // 비교과·특수 고정 업무: 비담임 지망 목록에서 제외
 const nonDepts = () => CFG.depts.filter(d=>d.quota!==0)
-  .map(d=>({...d, tasks:(d.tasks||[]).filter(t=>!FIXED_TASKS.includes(String(t).trim()))}))
+  .map(d=>({...d, tasks:(d.tasks||[]).filter(t=>!FIXED_TASKS().includes(String(t).trim()))}))
   .filter(d=>d.tasks.length);   // 비담임 정원 0명 부서, 남는 업무가 없는 부서는 제외
 function opt(list, val, ph){ return `<option value="">${ph}</option>` + list.map(v=>`<option${v===val?" selected":""}>${esc(v)}</option>`).join(""); }
 
@@ -358,7 +374,7 @@ function stepErrors(n){
     if(ROUTE==="head" && !S.staff) E.push("2026학년도 근무 구분(본교 재직 / 전입·신규)을 선택하세요.");
     if(S.staff){
       if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
-      else if(d.prev.school!=="없음" && !d.prev.task && !noExp()) E.push("2026학년도 담당업무를 입력하세요.");
+      else if(d.prev.school!=="없음" && !d.prev.task && !noTask()) E.push("2026학년도 담당업무를 입력하세요.");
     } else if(ROUTE!=="head") E.push("교사 구분을 먼저 선택하세요.");
     return E; }
   if(n===5){
@@ -403,10 +419,10 @@ function collect(){
   const isNew=S.staff==="전입·신규";
   const none=isNew && $("noSchool").checked;
   const school=none?"없음":isNew?d.pSchool:SCHOOL;
-  const task=none?"-":noExp()?"":d.pTask;
+  const task=none?"-":noTask()?"":d.pTask;
   const prev={school, task};
   const t={is:isNew, school, post:"", grade:"", task};   // 수집 서버 호환용
-  return { name:d.name, birth:d.birth, license:d.license, subject:d.subject, address:d.address, phone:d.phone,
+  return { fixedRole:noHr(), noExp:noExp(), name:d.name, birth:d.birth, license:d.license, subject:d.subject, address:d.address, phone:d.phone,
     careerYears:d.careerYears, arrivalDate:d.arrivalDate, cur:task, prev, staff:S.staff, transfer:t,
     career:noExp()?"":$("noCareer").checked?"없음":d.career, heads:[], hrMid:noExp()?"":$("noHR").checked?"0":d.hrMid, hrHigh:noExp()?"":$("noHR").checked?"0":d.hrHigh,
     prio:S.prio, groupRank:S.prio?[S.prio, S.prio==="담임"?"비담임":"담임"]:[],
@@ -428,7 +444,7 @@ function validate(d){
   if(d.phone && !/^01[0-9]-?\d{3,4}-?\d{4}$/.test(d.phone)) E.push("휴대폰번호 형식을 확인하세요. (예: 010-1234-5678)");
   if(S.staff){
     if(!d.prev.school) E.push("2026학년도 근무교를 입력하세요. (없으면 '없음')");
-    else if(d.prev.school!=="없음" && !d.prev.task && !noExp()) E.push("2026학년도 담당업무를 입력하세요.");
+    else if(d.prev.school!=="없음" && !d.prev.task && !noTask()) E.push("2026학년도 담당업무를 입력하세요.");
   }
   if(!noExp() && !d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
   if(!noExp() && (d.hrMid===""||d.hrHigh==="")) E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
@@ -471,7 +487,7 @@ function update(){
   $("headPicks").classList.toggle("hide", closed || S.wantHead!=="희망");
   $("staffNeed").classList.toggle("hide", !!S.staff); $("prevWrap").classList.toggle("hide", !S.staff); $("careerWrap").classList.toggle("hide",$("noCareer").checked); $("hrWrap").classList.toggle("hide",$("noHR").checked);
   const isN=S.staff==="전입·신규", none=isN&&$("noSchool").checked;
-  $("noSchoolWrap").classList.toggle("hide", !isN); $("pSchoolWrap").classList.toggle("hide", none); $("pTask").closest("label").classList.toggle("hide", none || noExp());
+  $("noSchoolWrap").classList.toggle("hide", !isN); $("pSchoolWrap").classList.toggle("hide", none); $("pTask").closest("label").classList.toggle("hide", none || noTask());
   const ps=$("pSchool"); if(S.staff==="본교"){ ps.value=SCHOOL; ps.disabled=true; } else if(ps.disabled){ ps.disabled=false; ps.value=""; } $("arrivalWrap").classList.toggle("hide", !S.staff && ROUTE!=="head");
   /* 단계별: 5단계는 구분(ROUTE)에 따라 부장 예정 확인 / 희망 업무로 갈림 */
   const isHeadRoute = ROUTE==="head";
@@ -561,7 +577,7 @@ async function loadConfig(){
   try{ const r=await fetch(SCRIPT_URL+"?action=config"); const j=await r.json(); if(j.ok&&j.config&&j.config.depts&&j.config.depts.length) CFG=j.config; }catch(e){}
 }
 
-(async()=>{ load(); await loadConfig(); renderPicks(); renderSteps(); update(); showStep(STEP||1); checkHead(); })();
+(async()=>{ renderSubjects(); load(); await loadConfig(); renderSubjects(); renderPicks(); renderSteps(); update(); showStep(STEP||1); checkHead(); })();
 </script>
 </body>
 </html>

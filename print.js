@@ -72,8 +72,8 @@ function injectPrintCss() {
 // d: 제출 데이터 1건 → 희망 조사서 + 동의서 (A4 1쪽)
 function renderForm(d) {
   const heads = (d.heads || []).filter(h => h && h.dept);
-  const FIX = ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject);   // 업무 고정: 희망 조사 해당 없음
-  const NOEXP = ["보건", "상담", "영양", "사서", "진로"].includes(d.subject);         // 비교과: 경력 입력 생략
+  const FIX = d.fixedRole ?? ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject);   // 업무 고정: 희망 조사 해당 없음
+  const NOEXP = d.noExp ?? ["특수", "보건", "상담", "영양", "사서", "진로"].includes(d.subject);    // 경력 입력 생략
   const careerTxt = NOEXP ? "해당 없음" : d.career ? nl(d.career) : heads.map(h => `${esc(h.dept)}부장 ${esc(h.years)}년`).join(", ");
   const pick = (arr, i) => esc((arr || [])[i] || "");
   const nonPick = i => { const p = (d.nonPicks || [])[i] || {}; return p.dept ? esc(p.dept + (p.task ? " – " + p.task : "")) : ""; };
