@@ -285,7 +285,10 @@ const NO_EXP_SUBJECTS = ["보건","상담","영양","사서","진로"];   // 비
 const noExp = () => NO_EXP_SUBJECTS.includes($("subject").value);
 const hrN = () => noHr() ? 0 : Math.min(3, hrGrades().length);
 const headDepts = () => CFG.depts.map(d=>d.name);
-const nonDepts = () => CFG.depts.filter(d=>d.tasks && d.tasks.length && d.quota!==0);   // 비담임 정원 0명 부서는 지망 목록에서 제외
+const FIXED_TASKS = ["특수","사서","전문상담","상담","보건","영양","진로"];   // 비교과·특수 고정 업무: 비담임 지망 목록에서 제외
+const nonDepts = () => CFG.depts.filter(d=>d.quota!==0)
+  .map(d=>({...d, tasks:(d.tasks||[]).filter(t=>!FIXED_TASKS.includes(String(t).trim()))}))
+  .filter(d=>d.tasks.length);   // 비담임 정원 0명 부서, 남는 업무가 없는 부서는 제외
 function opt(list, val, ph){ return `<option value="">${ph}</option>` + list.map(v=>`<option${v===val?" selected":""}>${esc(v)}</option>`).join(""); }
 
 
