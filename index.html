@@ -115,7 +115,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   <h2>2단계. 인적 사항</h2>
   <div class="grid">
     <label class="f">성명 <i class="req">*</i><input id="name" autocomplete="name" placeholder="예: 홍길동"></label>
-    <label class="f">생년월일 <i class="req">*</i><input id="birth" type="date"></label>
+    <label class="f">생년월일 <i class="req">*</i><input id="birth" type="text" inputmode="numeric" maxlength="10" autocomplete="bday" placeholder="예: 1980-03-15 (숫자만 입력)"></label>
     <label class="f">소지자격 <i class="req">*</i><input id="license" placeholder="예: 중등1급정교사(국어)"></label>
     <label class="f">발령교과 <i class="req">*</i><select id="subject"><option value="">교과 선택</option><optgroup label="교과"><option>국어</option><option>사회</option><option>역사</option><option>도덕</option><option>수학</option><option>과학</option><option>기술·가정</option><option>정보</option><option>체육</option><option>음악</option><option>미술</option><option>영어</option><option>한문</option><option>생활 중국어</option></optgroup><optgroup label="특수"><option>특수</option></optgroup><optgroup label="비교과"><option>보건</option><option>상담</option><option>영양</option><option>사서</option><option>진로</option></optgroup></select></label>
     <label class="f full">주소 <i class="req">*</i><input id="address" autocomplete="street-address" placeholder="예: 경기도 양주시 옥정동 OO아파트 101동 1001호"></label>
@@ -131,7 +131,7 @@ input::placeholder,textarea::placeholder{color:#9aa5a0}
   <h2>3단계. 경력</h2>
   <div class="grid">
     <label class="f">교육 경력 (합계, 년) <i class="req">*</i><input id="careerYears" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 12"></label>
-    <label class="f hide" id="arrivalWrap">본교 발령일 <i class="req">*</i><input id="arrivalDate" type="date"></label>
+    <label class="f hide" id="arrivalWrap">본교 발령일 <i class="req">*</i><input id="arrivalDate" type="text" inputmode="numeric" maxlength="10" placeholder="예: 2027-03-01 (숫자만 입력)"></label>
   </div>
   <div id="expBlock">
   <div class="q">업무 경력 <i class="req">*</i></div>
@@ -342,10 +342,12 @@ function stepErrors(n){
   if(n===2){ const E=[];
     [["name","성명"],["birth","생년월일"],["license","소지자격"],["subject","발령교과"],["address","주소"],["phone","휴대폰번호"]].forEach(([k,l])=>{ if(!d[k]) E.push(`${l}을(를) 입력하세요.`); });
     if(d.phone && !/^01[0-9]-?\d{3,4}-?\d{4}$/.test(d.phone)) E.push("휴대폰번호 형식을 확인하세요. (예: 010-1234-5678)");
+    if(d.birth && badDate(d.birth)) E.push("생년월일을 확인하세요. (예: 1980-03-15)");
     return E; }
   if(n===3){ const E=[];
     if(!d.careerYears) E.push("교육 경력을 입력하세요.");
     if(!d.arrivalDate) E.push("본교 발령일을 입력하세요.");
+    else if(badDate(d.arrivalDate)) E.push("본교 발령일을 확인하세요. (예: 2027-03-01)");
     if(!noExp() && !d.career) E.push("업무 경력을 입력하세요. (없으면 '업무 경력 없음' 체크)");
     if(!noExp() && (d.hrMid===""||d.hrHigh==="")) E.push("담임 경력(중학교, 고등학교)을 입력하세요. (없으면 '담임 경력 없음' 체크, 한쪽만 없으면 0)");
     return E; }
@@ -417,6 +419,8 @@ function validate(d){
   if(!S.staff) E.push("교사 구분(본교 재직교사 / 전입·신규교사)을 선택하세요.");
   const need=[["name","성명"],["birth","생년월일"],["license","소지자격"],["subject","발령교과"],["address","주소"],["phone","휴대폰번호"],["careerYears","교육 경력"]];
   if(S.staff && !d.arrivalDate) E.push("본교 발령일을 입력하세요.");
+  else if(S.staff && badDate(d.arrivalDate)) E.push("본교 발령일을 확인하세요. (예: 2027-03-01)");
+  if(d.birth && badDate(d.birth)) E.push("생년월일을 확인하세요. (예: 1980-03-15)");
   need.forEach(([k,l])=>{ if(!d[k]) E.push(`${l}을(를) 입력하세요.`); });
   if(d.phone && !/^01[0-9]-?\d{3,4}-?\d{4}$/.test(d.phone)) E.push("휴대폰번호 형식을 확인하세요. (예: 010-1234-5678)");
   if(S.staff){
@@ -522,6 +526,12 @@ async function checkHead(){ const n=$("name").value.replace(/\s/g,""); if(!SCRIP
 $("name").addEventListener("input",()=>{ clearTimeout(headTimer); headTimer=setTimeout(checkHead,700); });
 $("name").addEventListener("change",checkHead);
 $("subject").addEventListener("change",()=>{ renderPicks(); update(); });
+/* 날짜: 숫자만 입력하면 연도 4자리·월 2자리 뒤에 '-'를 자동으로 넣음 (YYYY-MM-DD) */
+function badDate(v){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v); if(!m) return true; const dt=new Date(Date.UTC(+m[1],+m[2]-1,+m[3])); return dt.getUTCFullYear()!==+m[1]||dt.getUTCMonth()!==+m[2]-1||dt.getUTCDate()!==+m[3]; }
+["birth","arrivalDate"].forEach(id=>{ const el=$(id);
+  el.addEventListener("input",e=>{ if(e.inputType&&e.inputType.startsWith("delete")) return;
+    const d=el.value.replace(/\D/g,"").slice(0,8);
+    el.value = d.length<4 ? d : d.length<6 ? `${d.slice(0,4)}-${d.slice(4)}` : `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6)}`; }); });
 $("resetBtn").onclick=()=>{ if(!confirm("입력한 내용을 모두 지울까요? (이미 제출한 내용은 그대로 남습니다)")) return; try{localStorage.removeItem(KEY);}catch(e){} location.reload(); };
 $("previewBtn").onclick=()=>{ const {d}=update(); injectPrintCss(); const p=$("preview"); p.innerHTML=renderForm({...d,submittedAt:new Date().toISOString()}); p.classList.remove("hide"); p.scrollIntoView({behavior:"smooth"}); };
 
